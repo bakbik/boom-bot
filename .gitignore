@@ -1,5 +1,8 @@
-# Host test binaries
+# Host test binaries + generated previews
 firmware/test/test_protocol
+firmware/test/test_control
+firmware/test/render_gestures
+firmware/test/gestures.svg
 *.o
 *.out
 

@@ -59,15 +59,18 @@ See `docs/hardware.md` for the full BOM with part numbers and prices (~$78 total
 - [ ] Updated battery bay for 2S LiPo
 - [ ] All parts remain FDM-printable (no overhangs >45° without support)
 
-### M3 — MCU 1 Firmware (ESP32)
-- [ ] Complementary filter → upgrade to Madgwick for better angle estimate
-- [ ] Cascade PID: outer loop (angle), inner loop (wheel speed via encoders)
+### M3 — MCU 1 Firmware (ESP32-S3 Lolin)
+- [x] Complementary filter (`firmware/common/control.h`) — Madgwick upgrade still TODO
+- [x] Cascade PID: inner loop (angle→motor), outer loop (velocity→angle setpoint)
+- [x] Drive mixer (translation + differential turn) — `control.h`
+- [x] Control logic verified against a plant-model simulation (`firmware/test/test_control.cpp`)
+- [ ] Wire `control.h` into an ESP-IDF/Arduino sketch (IMU read → filter → PID → PWM)
 - [ ] TB6612FNG motor driver API (replaces L298N)
-- [ ] UART command receiver — parse speed/direction packets from MCU 2
+- [ ] UART command receiver — parse speed/direction packets from MCU 2 (`protocol.h`)
 - [ ] UART telemetry sender — angle, speed, battery voltage, fault flags
 - [ ] Heartbeat watchdog (500 ms timeout → safe-mode)
-- [ ] Display driver — SPI output to gesture display (post-M0)
-- [ ] Unit tests on host (native ESP-IDF build or Unity framework)
+- [ ] Display driver — SPI output to gesture display
+- [ ] Madgwick filter upgrade for a cleaner angle estimate
 
 ### M4 — MCU 2 Firmware (ESP32-S3-CAM)
 - [ ] Toolchain: ESP-IDF (or Arduino-ESP32) with ESP-WHO
@@ -130,10 +133,19 @@ MCU1 → MCU2  (telemetry, every 50 ms)
 | C | 2× SSD1306 OLED 0.96" | 128×64 each | Minimal / retro | I2C |
 | D | MAX7219 8×8 LED matrix ×2 | 8×8 each | Pixelated, very readable | SPI |
 
-**Chosen: Option A (2× GC9A01 round TFTs)** — gives the most lifelike
-expression range and the round shape reads as eyes instantly.
+**Chosen: Option A (2× GC9A01 round TFTs)** — the two eyes. Confirmed decision.
 
-#### Gesture Pose Bank (design AFTER display chosen)
+> **Roadmap:** a rectangular lower-face display (mouth) may be added later on the
+> same SPI bus. Design the gesture bank as eyes-only for now, but keep the pose
+> format extensible so a mouth channel can be layered on without a rewrite.
+
+#### Gesture Pose Bank
+> **Status:** first pass done. All 14 protocol gesture IDs are defined in
+> `firmware/common/gestures.h` as normalized eye poses; preview them with
+> `make -C firmware/test gestures` (renders `gestures.svg`). Remaining: on-device
+> SPI renderer + animation tweening, and the emotional extras below (love/excited)
+> once a LOVE/EXCITED gesture ID is added to the protocol.
+
 Categories to design:
 
 ```

@@ -57,11 +57,11 @@ boom-bot/
 | M0 | Decisions (display type, MCU 2 platform) | ✅ Resolved (camera mount still open) |
 | M1 | Hardware BOM | ✅ Done — see `docs/hardware.md` |
 | M2 | Chassis redesign (CAD) | ⬜ Not started |
-| M3 | MCU 1 firmware (ESP32-S3 Lolin) | ⬜ Not started |
+| M3 | MCU 1 firmware (ESP32-S3 Lolin) | 🟢 Control lib + sim done; device wiring pending |
 | M4 | MCU 2 software (ESP32-S3-CAM) | ⬜ Not started |
 | M5 | Vision system | ⬜ Not started |
 | M6 | UART protocol | 🟢 Shared lib + tests done; on-device loopback pending |
-| M7 | Gesture pose bank | 🟢 Unblocked (display chosen) |
+| M7 | Gesture pose bank | 🟢 Poses defined + SVG preview; device renderer pending |
 | M8 | Flutter app v2 | ⬜ Not started |
 | M9 | Integration & testing | ⬜ Not started |
 

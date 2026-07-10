@@ -1,6 +1,6 @@
 # Hardware — Bill of Materials
 
-> Status: draft — finalize after M0 display decision is confirmed
+> Status: draft — display decided (Option A, 2× GC9A01). Remaining open item: camera mount (fixed vs pan/tilt).
 
 ## Microcontrollers
 
@@ -19,14 +19,21 @@
 | 2 | N20 geared DC motor 6V 300RPM | Main drive wheels | ~$4 each |
 | 1 | TB6612FNG dual motor driver | Replaces L298N, lower dropout | ~$3 |
 
-## Display (M0 decision pending)
+## Display — decided: Option A (eyes)
 
 | Option | Part | Qty | Notes | Est. Price |
 |--------|------|-----|-------|-----------|
-| **A (recommended)** | GC9A01 round TFT 1.28" 240×240 | 2 | SPI, most expressive as eyes | ~$5 each |
+| **A ✅ chosen** | GC9A01 round TFT 1.28" 240×240 | 2 | SPI, the two eyes | ~$5 each |
 | B | ILI9341 2.4" TFT 320×240 | 1 | Single face panel, color | ~$7 |
 | C | SSD1306 OLED 128×64 0.96" | 2 | I2C, minimal/retro | ~$3 each |
 | D | MAX7219 8×8 LED matrix | 2 | SPI, pixelated, very readable outdoors | ~$2 each |
+
+### Planned addition — lower-face display (not yet spec'd)
+
+A rectangular panel below the eyes for a mouth / lower face is on the roadmap.
+Leading candidate is a wide rectangular TFT (e.g. a 2.4" ILI9341 or a bar-style
+IPS) driven from the same SPI bus as the eyes. Deferred until the eye gesture
+bank is proven — pin-budget and SPI bandwidth to be confirmed then.
 
 ## Power
 

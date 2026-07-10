@@ -57,3 +57,37 @@ make -C firmware/test        # build and run (292 checks)
 The tests cover parse success/failure, range clamping, serialization,
 format→parse round trips for every packet type, and the streaming
 `LineReader`.
+
+## `control.h`
+
+Hardware-independent balance & drive dynamics for MCU 1 (M3):
+
+- **`ComplementaryFilter`** — fuses accelerometer angle + gyro rate into a
+  stable tilt estimate.
+- **`Pid`** — output clamping, integral anti-windup, derivative-on-measurement.
+- **`BalanceController`** — cascade controller: an outer velocity loop biases
+  the tilt setpoint, an inner angle loop drives the wheels to hold it. Reports
+  `fallen()` past a configurable tilt so the safety layer can cut drive.
+- **`DriveMixer`** — turns a protocol `Drive` command into a target velocity
+  for the balance loop plus a left/right differential for turning.
+
+Verified in [`../test/test_control.cpp`](../test/test_control.cpp) against a
+nonlinear inverted-pendulum-on-wheels plant model: the controller recovers from
+an 8° tilt without falling (peak ~7.6°, settles to ~0°) and tracks a forward
+drive command to within a few cm/s while staying upright. Gains in
+`defaultBalanceConfig()` are a simulation-tuned starting point — expect to
+re-tune on hardware (M9 auto-tune).
+
+## `gestures.h`
+
+The eye gesture / face-pose bank (M7) for the 2× GC9A01 round displays. Maps
+every protocol `Gesture` ID to a `FacePose` (both eyes as normalized
+parameters: openness, pupil position/scale, squint, brow angle, shape, tint)
+plus behavior hints (`holdMs`, `autoBlink`, `pupilsTrack`). The format leaves
+room for a `MouthPose` channel when the planned lower-face display is added.
+
+Preview the whole bank as an SVG contact sheet:
+
+```sh
+make -C firmware/test gestures   # writes gestures.svg
+```
