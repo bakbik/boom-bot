@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="580" viewBox="0 0 920 580" font-family="sans-serif">
+  <rect width="920" height="580" fill="#ffffff"/>
+  <text x="24" y="34" font-size="22" font-weight="700" fill="#1a1a1a">BoomBot — Control-Relevant Chassis Dimensions</text>
+  <text x="24" y="56" font-size="13" fill="#777">Illustrative, not to scale. Values from firmware/common/control.h + the balance sim. See docs/chassis-design.md.</text>
+
+  <!-- ================= SIDE VIEW ================= -->
+  <text x="150" y="92" font-size="16" font-weight="700" fill="#2456c6" text-anchor="middle">SIDE VIEW</text>
+
+  <!-- ground -->
+  <line x1="40" y1="500" x2="420" y2="500" stroke="#333" stroke-width="2"/>
+  <g stroke="#aaa" stroke-width="1">
+    <line x1="50" y1="500" x2="40" y2="512"/><line x1="80" y1="500" x2="70" y2="512"/>
+    <line x1="110" y1="500" x2="100" y2="512"/><line x1="140" y1="500" x2="130" y2="512"/>
+    <line x1="170" y1="500" x2="160" y2="512"/><line x1="200" y1="500" x2="190" y2="512"/>
+    <line x1="230" y1="500" x2="220" y2="512"/><line x1="260" y1="500" x2="250" y2="512"/>
+    <line x1="290" y1="500" x2="280" y2="512"/><line x1="320" y1="500" x2="310" y2="512"/>
+    <line x1="350" y1="500" x2="340" y2="512"/><line x1="380" y1="500" x2="370" y2="512"/>
+    <line x1="410" y1="500" x2="400" y2="512"/>
+  </g>
+
+  <!-- centerline -->
+  <line x1="230" y1="150" x2="230" y2="500" stroke="#c9c9c9" stroke-width="1" stroke-dasharray="5 5"/>
+
+  <!-- wheel (side profile) -->
+  <circle cx="230" cy="440" r="60" fill="#eef1f7" stroke="#333" stroke-width="2"/>
+  <circle cx="230" cy="440" r="10" fill="#333"/>
+  <text x="300" y="474" font-size="12" fill="#333">65 mm wheel</text>
+  <line x1="292" y1="470" x2="258" y2="452" stroke="#333" stroke-width="0.8"/>
+
+  <!-- axle marker -->
+  <circle cx="230" cy="440" r="3.5" fill="#d12"/>
+
+  <!-- chassis: dual plates + body -->
+  <rect x="176" y="425" width="108" height="10" rx="2" fill="#dfe6f2" stroke="#2456c6" stroke-width="1.5"/>
+  <rect x="176" y="250" width="108" height="10" rx="2" fill="#dfe6f2" stroke="#2456c6" stroke-width="1.5"/>
+  <line x1="184" y1="260" x2="184" y2="425" stroke="#8aa0cc" stroke-width="2"/>
+  <line x1="276" y1="260" x2="276" y2="425" stroke="#8aa0cc" stroke-width="2"/>
+  <text x="292" y="256" font-size="11" fill="#2456c6">top plate</text>
+  <text x="292" y="437" font-size="11" fill="#2456c6">base plate (≈ axle height)</text>
+
+  <!-- battery -->
+  <rect x="192" y="320" width="76" height="52" rx="3" fill="#ffe4a3" stroke="#c8892a" stroke-width="1.5"/>
+  <text x="230" y="350" font-size="11" fill="#7a5410" text-anchor="middle">battery</text>
+  <text x="230" y="386" font-size="9.5" fill="#7a5410" text-anchor="middle">(heaviest — mid height,</text>
+  <text x="230" y="398" font-size="9.5" fill="#7a5410" text-anchor="middle">fore/aft adjustable)</text>
+
+  <!-- MPU near axle -->
+  <rect x="206" y="410" width="48" height="18" rx="2" fill="#bfe3c4" stroke="#2e8b57" stroke-width="1.5"/>
+  <text x="230" y="423" font-size="9.5" fill="#1c5c38" text-anchor="middle">MPU-6050</text>
+  <text x="262" y="405" font-size="10.5" fill="#2e8b57">on centerline,</text>
+  <text x="262" y="418" font-size="10.5" fill="#2e8b57">rigid, near axle</text>
+
+  <!-- CoM marker -->
+  <circle cx="230" cy="368" r="9" fill="none" stroke="#d12" stroke-width="2"/>
+  <path d="M230 359 v18 M221 368 h18" stroke="#d12" stroke-width="2"/>
+  <text x="150" y="364" font-size="12" font-weight="700" fill="#d12" text-anchor="end">CoM</text>
+
+  <!-- L dimension (axle -> CoM) -->
+  <line x1="336" y1="440" x2="336" y2="368" stroke="#d12" stroke-width="1.2"/>
+  <path d="M336 440 l-4 -9 h8 z" fill="#d12"/>
+  <path d="M336 368 l-4 9 h8 z" fill="#d12"/>
+  <line x1="230" y1="440" x2="340" y2="440" stroke="#d12" stroke-width="0.6" stroke-dasharray="3 3"/>
+  <line x1="230" y1="368" x2="340" y2="368" stroke="#d12" stroke-width="0.6" stroke-dasharray="3 3"/>
+  <text x="344" y="400" font-size="13" font-weight="700" fill="#d12">L ≈ 90 mm</text>
+  <text x="344" y="415" font-size="10.5" fill="#d12">CoM above axle</text>
+  <text x="344" y="428" font-size="10.5" fill="#d12">(THE key number)</text>
+
+  <!-- total height dimension -->
+  <line x1="60" y1="255" x2="60" y2="500" stroke="#555" stroke-width="1.2"/>
+  <path d="M60 255 l-4 9 h8 z" fill="#555"/>
+  <path d="M60 500 l-4 -9 h8 z" fill="#555"/>
+  <text x="54" y="380" font-size="11" fill="#555" text-anchor="middle" transform="rotate(-90 54 380)">total height ≈ 150–250 mm</text>
+
+  <!-- ================= FRONT VIEW ================= -->
+  <text x="690" y="92" font-size="16" font-weight="700" fill="#2456c6" text-anchor="middle">FRONT VIEW</text>
+
+  <line x1="500" y1="500" x2="880" y2="500" stroke="#333" stroke-width="2"/>
+  <g stroke="#aaa" stroke-width="1">
+    <line x1="510" y1="500" x2="500" y2="512"/><line x1="540" y1="500" x2="530" y2="512"/>
+    <line x1="570" y1="500" x2="560" y2="512"/><line x1="600" y1="500" x2="590" y2="512"/>
+    <line x1="630" y1="500" x2="620" y2="512"/><line x1="660" y1="500" x2="650" y2="512"/>
+    <line x1="690" y1="500" x2="680" y2="512"/><line x1="720" y1="500" x2="710" y2="512"/>
+    <line x1="750" y1="500" x2="740" y2="512"/><line x1="780" y1="500" x2="770" y2="512"/>
+    <line x1="810" y1="500" x2="800" y2="512"/><line x1="840" y1="500" x2="830" y2="512"/>
+    <line x1="870" y1="500" x2="860" y2="512"/>
+  </g>
+
+  <!-- centerline -->
+  <line x1="690" y1="150" x2="690" y2="500" stroke="#c9c9c9" stroke-width="1" stroke-dasharray="5 5"/>
+
+  <!-- wheels (edge on) -->
+  <rect x="576" y="405" width="26" height="70" rx="6" fill="#eef1f7" stroke="#333" stroke-width="2"/>
+  <rect x="778" y="405" width="26" height="70" rx="6" fill="#eef1f7" stroke="#333" stroke-width="2"/>
+
+  <!-- body -->
+  <rect x="605" y="250" width="170" height="185" rx="4" fill="#dfe6f2" stroke="#2456c6" stroke-width="1.5"/>
+  <!-- battery centered -->
+  <rect x="650" y="320" width="80" height="54" rx="3" fill="#ffe4a3" stroke="#c8892a" stroke-width="1.5"/>
+  <text x="690" y="352" font-size="11" fill="#7a5410" text-anchor="middle">battery</text>
+
+  <!-- CoM centered -->
+  <circle cx="690" cy="360" r="9" fill="none" stroke="#d12" stroke-width="2"/>
+  <path d="M690 351 v18 M681 360 h18" stroke="#d12" stroke-width="2"/>
+  <text x="690" y="470" font-size="10.5" fill="#d12" text-anchor="middle">CoM on centerline →</text>
+  <text x="690" y="483" font-size="10.5" fill="#d12" text-anchor="middle">L/R symmetric = no yaw drift</text>
+
+  <!-- track width dimension -->
+  <line x1="589" y1="200" x2="791" y2="200" stroke="#555" stroke-width="1.2"/>
+  <path d="M589 200 l9 -4 v8 z" fill="#555"/>
+  <path d="M791 200 l-9 -4 v8 z" fill="#555"/>
+  <line x1="589" y1="405" x2="589" y2="196" stroke="#555" stroke-width="0.6" stroke-dasharray="3 3"/>
+  <line x1="791" y1="405" x2="791" y2="196" stroke="#555" stroke-width="0.6" stroke-dasharray="3 3"/>
+  <text x="690" y="192" font-size="12" font-weight="700" fill="#555" text-anchor="middle">track width ≈ 100–150 mm</text>
+
+  <!-- notes box -->
+  <rect x="500" y="250" width="0" height="0" fill="none"/>
+</svg>
