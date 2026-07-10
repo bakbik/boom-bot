@@ -89,5 +89,9 @@ room for a `MouthPose` channel when the planned lower-face display is added.
 Preview the whole bank as an SVG contact sheet:
 
 ```sh
-make -C firmware/test gestures   # writes gestures.svg
+make -C firmware/test gestures   # regenerates firmware/test/gestures.svg
 ```
+
+A rendered copy is committed at [`../test/gestures.svg`](../test/gestures.svg)
+so it's viewable on GitHub without building — regenerate and re-commit it when
+poses change.

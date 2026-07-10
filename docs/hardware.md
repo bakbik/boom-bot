@@ -19,6 +19,37 @@
 | 2 | N20 geared DC motor 6V 300RPM | Main drive wheels | ~$4 each |
 | 1 | TB6612FNG dual motor driver | Replaces L298N, lower dropout | ~$3 |
 
+### IMU selection — MPU-6050 (GY-521)
+
+Chosen board: **GY-521 (MPU-6050, 6-DOF: 3-axis accel + 3-axis gyro)**.
+
+Considered alternatives on hand:
+
+| Board | Chip(s) | Sensors | Verdict for a self-balancer |
+|-------|---------|---------|-----------------------------|
+| **GY-521** ✅ | MPU-6050 | accel + gyro (6-DOF) | Exactly what balancing needs; best-documented IMU for self-balancers |
+| GY-9250 | MPU-9250 | accel + gyro + magnetometer (9-DOF) | Mag adds heading, but it's corrupted by the nearby motors, and the chip is heavily counterfeited |
+| HW-612 (GY-87) | MPU-6050 + HMC5883L + BMP180 | accel + gyro + mag + barometer (10-DOF) | Contains the same MPU-6050; barometer is useless on a ground robot, mag has the same interference problem |
+
+**Why the MPU-6050 wins here:**
+
+1. Balancing only needs **pitch angle + pitch rate**, which come entirely from
+   the accel + gyro. All three boards carry an MPU-6050-class accel/gyro (the
+   HW-612 literally *contains* an MPU-6050), so all balance equally well — the
+   extras don't improve the balance loop at all.
+2. The barometer (HW-612) measures altitude — irrelevant for a ground robot.
+3. The magnetometer (GY-9250 / HW-612) gives *heading*, not tilt, and a mag
+   sitting centimetres from two DC motors and battery currents reads mostly
+   noise without careful placement + hard/soft-iron calibration.
+4. The MPU-6050 has the deepest ecosystem of self-balancer reference code; the
+   MPU-9250 is widely cloned (many "9250" boards are actually an MPU-6500 with
+   no magnetometer).
+
+**Heading, if we need it later:** derive yaw from the **AS5600 wheel encoders**
+(already in this BOM) rather than a magnetometer — encoders are immune to the
+motor magnetic interference. Only add a dedicated magnetometer on a mast, away
+from the motors, if encoder odometry proves insufficient.
+
 ## Display — decided: Option A (eyes)
 
 | Option | Part | Qty | Notes | Est. Price |
