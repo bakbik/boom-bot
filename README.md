@@ -37,8 +37,10 @@ Dual-MCU self-balancing robot with camera vision, obstacle avoidance, person fol
 ```
 boom-bot/
   firmware/
+    common/        Shared code — UART protocol (protocol.h)
     mcu1/          ESP32-S3 Lolin — real-time controller
     mcu2/          ESP32-S3-CAM  — vision & behavior
+    test/          Host unit tests (no hardware needed)
   app/             Flutter mobile app (WiFi WebSocket control)
   cad/             FDM-printable chassis (CadQuery)
   docs/
@@ -52,14 +54,14 @@ boom-bot/
 
 | # | Milestone | Status |
 |---|---|---|
-| M0 | Decisions (display type, camera mount) | 🔴 Blocked |
-| M1 | Hardware BOM | ⬜ Not started |
+| M0 | Decisions (display type, MCU 2 platform) | ✅ Resolved (camera mount still open) |
+| M1 | Hardware BOM | ✅ Done — see `docs/hardware.md` |
 | M2 | Chassis redesign (CAD) | ⬜ Not started |
 | M3 | MCU 1 firmware (ESP32-S3 Lolin) | ⬜ Not started |
 | M4 | MCU 2 software (ESP32-S3-CAM) | ⬜ Not started |
 | M5 | Vision system | ⬜ Not started |
-| M6 | UART protocol | ⬜ Not started |
-| M7 | Gesture pose bank | 🟡 Waiting on M0 |
+| M6 | UART protocol | 🟢 Shared lib + tests done; on-device loopback pending |
+| M7 | Gesture pose bank | 🟢 Unblocked (display chosen) |
 | M8 | Flutter app v2 | ⬜ Not started |
 | M9 | Integration & testing | ⬜ Not started |
 
@@ -77,3 +79,10 @@ boom-bot/
 ## Quick Start
 
 _Firmware and app are under active development — see individual READMEs in each subdirectory._
+
+The shared UART protocol library has host unit tests that need only a C++
+compiler (no hardware):
+
+```sh
+make -C firmware/test
+```

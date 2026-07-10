@@ -1,0 +1,17 @@
+# Host test binaries
+firmware/test/test_protocol
+*.o
+*.out
+
+# Build directories
+build/
+.pio/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store

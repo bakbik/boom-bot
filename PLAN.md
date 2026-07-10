@@ -9,16 +9,20 @@ and an expressive gesture display.
 
 ```
 ┌─────────────────────────────┐         ┌─────────────────────────────┐
-│       MCU 1 — ESP32         │  UART   │    MCU 2 — RPi Zero 2W      │
+│    MCU 1 — ESP32-S3 Lolin   │  UART   │    MCU 2 — ESP32-S3-CAM     │
 │                             │◄───────►│                             │
-│  • Balance PID (<5ms loop)  │         │  • Camera (OpenCV / TFLite) │
+│  • Balance PID (<5ms loop)  │         │  • Camera (ESP-WHO)         │
 │  • Motor control (PWM)      │         │  • Obstacle detection       │
-│  • IMU — MPU-6050           │         │  • Person/object following  │
+│  • IMU — MPU-6050           │         │  • Person/color following   │
 │  • Wheel encoders           │         │  • Behavior state machine   │
-│  • Gesture display driver   │         │  • WiFi / BT user control   │
+│  • Gesture display driver   │         │  • WiFi user control        │
 │  • Safety watchdog          │         │  • Telemetry aggregator     │
 └─────────────────────────────┘         └─────────────────────────────┘
 ```
+
+> MCU 2 was originally scoped as a Raspberry Pi Zero 2W; it is now an
+> ESP32-S3-CAM (see M0). Both boards run 3.3V logic, so the UART link needs
+> no level shifter. See `docs/architecture.md` for the current wiring.
 
 **Watchdog rule:** if MCU 1 receives no heartbeat from MCU 2 for 500 ms,
 it holds balance at 0° and cuts drive — vision crash can never topple the robot.
@@ -27,21 +31,24 @@ it holds balance at 0° and cuts drive — vision crash can never topple the rob
 
 ## Milestones
 
-### M0 — Decisions (blocker for everything else)
-- [ ] **Display type** — must be decided before gesture design starts (see §7)
-- [ ] Motor driver upgrade — L298N → TB6612FNG or DRV8833
-- [ ] Camera — Pi Camera Module 3 wide vs OV5647
+### M0 — Decisions ✅ resolved
+- [x] **Display type** — Option A: 2× GC9A01 round TFT 1.28" (see §7)
+- [x] Motor driver — TB6612FNG (replaces L298N)
+- [x] MCU 2 platform — ESP32-S3-CAM (replaces RPi Zero 2W; keeps the stack all-ESP32)
+- [x] Camera — OV2640 (bundled on the ESP32-S3-CAM)
+- [ ] Camera mount — fixed forward vs pan/tilt (still open, see Open Questions)
 
 ### M1 — Hardware & BOM
-- [ ] Finalize full component list with unit prices
-- [ ] MCU 1: ESP32 DevKit v1
-- [ ] MCU 2: Raspberry Pi Zero 2W + Pi Camera
-- [ ] Motor driver (post-M0 decision)
-- [ ] Display module(s) (post-M0 decision)
-- [ ] 2× VL53L0X ToF sensors (obstacle flanks)
-- [ ] Wheel encoders (magnetic hall-effect, e.g. AS5600)
-- [ ] Battery: 2S LiPo 2200mAh with BMS
-- [ ] Level shifter 5V↔3.3V for UART between ESP32 and RPi
+See `docs/hardware.md` for the full BOM with part numbers and prices (~$78 total).
+- [x] Finalize full component list with unit prices
+- [x] MCU 1: ESP32-S3 Lolin (16MB flash, 8MB PSRAM)
+- [x] MCU 2: ESP32-S3-CAM (OV2640 bundled)
+- [x] Motor driver: TB6612FNG
+- [x] Display: 2× GC9A01 round TFT (Option A)
+- [x] 2× VL53L0X ToF sensors (obstacle flanks)
+- [x] Wheel encoders: 2× AS5600 magnetic
+- [x] Power: 5V 5000mAh always-on power bank (single rail)
+- [x] No level shifter needed — both MCUs are 3.3V logic
 
 ### M2 — Chassis Redesign (CAD)
 - [ ] Dual-layer top plate — RPi Zero 2W + camera mount
@@ -62,10 +69,10 @@ it holds balance at 0° and cuts drive — vision crash can never topple the rob
 - [ ] Display driver — SPI output to gesture display (post-M0)
 - [ ] Unit tests on host (native ESP-IDF build or Unity framework)
 
-### M4 — MCU 2 Software (RPi Zero 2W)
-- [ ] OS: Raspberry Pi OS Lite (64-bit), headless setup
-- [ ] Camera stack: libcamera + OpenCV Python bindings
-- [ ] UART command sender to ESP32 (`/dev/serial0`, 115200 baud)
+### M4 — MCU 2 Firmware (ESP32-S3-CAM)
+- [ ] Toolchain: ESP-IDF (or Arduino-ESP32) with ESP-WHO
+- [ ] Camera stack: OV2640 via DVP, QVGA (320×240) capture
+- [ ] UART command sender to MCU 1 (115200 baud, `firmware/common/protocol.h`)
 - [ ] Heartbeat loop (sends `HB\n` every 200 ms)
 - [ ] Behavior state machine
 
@@ -79,16 +86,16 @@ Triggers:
   any      → SLEEP   : no motion/person for 5 min
 ```
 
-- [ ] WiFi REST API for remote control (replaces HC-05 Bluetooth serial)
-- [ ] Telemetry logger (CSV + optional MQTT push)
+- [ ] WiFi REST API + MJPEG stream for remote control (replaces HC-05 Bluetooth serial)
+- [ ] Telemetry logger (NVS + optional MQTT push)
 
 ### M5 — Vision System
 - [ ] **Obstacle detection** — VL53L0X ToF primary, camera secondary confirmation
 - [ ] **Color following** — HSV blob tracking (configurable target color via app)
-- [ ] **Person following** — TFLite MobileNet SSD (COCO person class)
+- [ ] **Person following** — ESP-WHO human/pedestrian detection model
   - Target lock: hold bounding box center within ±50px of frame center
   - Distance proxy: bounding box height → drive speed (bigger = slow down)
-- [ ] **Face detection** — OpenCV Haarcascade for close-range interaction trigger
+- [ ] **Face detection** — ESP-WHO face detector for close-range interaction trigger
 - [ ] Calibration script — intrinsic camera calibration, ToF offset calibration
 
 ### M6 — Inter-MCU Protocol (UART)
@@ -105,16 +112,16 @@ MCU1 → MCU2  (telemetry, every 50 ms)
   T:<angle>:<spd>:<bat>:<fault>
 ```
 
-- [ ] Protocol spec document
-- [ ] ESP32 parser + sender implementation
-- [ ] RPi Python parser + sender implementation
-- [ ] Loopback integration test (UART echo test fixture)
+- [x] Protocol spec document — `docs/protocol.md`
+- [x] Shared parser + serializer — `firmware/common/protocol.h` (used by both MCUs)
+- [x] Host unit tests — `firmware/test/` (292 checks: parse, range clamp, round trips, line reader)
+- [ ] On-device loopback integration test (UART echo between the two boards)
 
 ### M7 — Display & Gesture System
 
-> **⚠ BLOCKED on M0 display decision. Do not design poses until display is chosen.**
+> **✅ Unblocked — M0 chose Option A (2× GC9A01 round TFTs). Pose design can start.**
 
-#### Display Options (decide in M0)
+#### Display Options (M0 chose Option A)
 
 | Option | Display | Resolution | Feel | Driver |
 |--------|---------|-----------|------|--------|
@@ -123,7 +130,7 @@ MCU1 → MCU2  (telemetry, every 50 ms)
 | C | 2× SSD1306 OLED 0.96" | 128×64 each | Minimal / retro | I2C |
 | D | MAX7219 8×8 LED matrix ×2 | 8×8 each | Pixelated, very readable | SPI |
 
-**Recommendation: Option A (2× GC9A01 round TFTs)** — gives the most lifelike
+**Chosen: Option A (2× GC9A01 round TFTs)** — gives the most lifelike
 expression range and the round shape reads as eyes instantly.
 
 #### Gesture Pose Bank (design AFTER display chosen)
