@@ -97,7 +97,24 @@ to catch a lean — which is why the robot must stay **light** (see below).
   to catch a lean. Every extra gram lowers real `a_max`.
 
 **Size & structure**
-- Small and compact: think **~150–250 mm tall**, wheelbase/track **~100–150 mm**.
+- Small and compact: think **~150–250 mm tall**; track width is flexible (see below).
+- **Track width is NOT a control-loop constraint — it can be narrow.** The
+  controller only balances *pitch*; **roll is passive**, so the track sets a
+  static sideways tip limit:
+
+  ```
+  roll tip angle ≈ atan( (track/2) / h_CoM_above_ground )
+  ```
+
+  With h ≈ 122 mm (90 mm CoM above axle + 32.5 mm wheel radius):
+  100 mm → ~22°, 80 mm → ~18°, 60 mm → ~14°, 40 mm → ~9°.
+  Curves (centrifugal tilt), single-wheel bumps, floor slope, and dance gestures
+  all eat into this margin. **~70–80 mm is still comfortable; below ~60 mm gets
+  tippy** outside flat smooth floors. If you go narrow, don't also go tall —
+  narrow + high CoM is what falls over sideways. Narrower track also spins
+  faster for the same wheel differential (just a `turnGain` recalibration).
+  In practice the widest component between the wheels (battery, ~65–70 mm for a
+  power bank) usually sets the minimum anyway.
 - **Rigid frame.** Structural flex is the enemy of balance — dual plates with solid
   standoffs, no rattly joints.
 - Compact mass near the CoM = lower rotational inertia = snappier response (but
