@@ -92,9 +92,12 @@ to catch a lean — which is why the robot must stay **light** (see below).
 - Bigger wheels → more speed but less acceleration/torque. Keep 65 mm unless you
   change the gains.
 - **`a_max = 30 m/s²` in the sim is optimistic** (that's ~3g at the contact patch;
-  real N20s deliver less and will slip before that). The practical consequence:
-  **keep the robot light** so the motors can still accelerate the base fast enough
-  to catch a lean. Every extra gram lowers real `a_max`.
+  real N20s deliver less and will slip before that). It's further reduced by the
+  **L298N driver's ~1.5–3 V internal dropout** — on the 5 V rail the motors see
+  only ~2–3.5 V, roughly halving drive authority vs. an ideal driver. The
+  practical consequence: **keep the robot light** so the motors can still
+  accelerate the base fast enough to catch a lean. Every extra gram lowers real
+  `a_max`. (Swapping to a MOSFET driver later recovers most of this margin.)
 
 **Size & structure**
 - Small and compact: think **~150–250 mm tall**; track width is flexible (see below).

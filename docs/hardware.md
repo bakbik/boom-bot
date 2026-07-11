@@ -17,7 +17,7 @@
 | 2 | VL53L0X ToF breakout | Obstacle flanks, I2C | ~$3 each |
 | 2 | AS5600 magnetic encoder | Wheel speed feedback, I2C | ~$3 each |
 | 2 | N20 geared DC motor 6V 300RPM | Main drive wheels | ~$4 each |
-| 1 | TB6612FNG dual motor driver | Replaces L298N, lower dropout | ~$3 |
+| 1 | L298N dual motor driver | On hand; note ~1.5–3 V internal dropout (see wiring notes) | ~$2 |
 
 ### IMU selection — MPU-6050 (GY-521)
 
@@ -102,5 +102,26 @@ a 100 mA dummy load (resistor or LED array).
 
 - ESP32-S3 Lolin ↔ ESP32-S3-CAM: UART on GPIO17/18, shared GND, no level shifter needed (both 3.3V)
 - MPU-6050, VL53L0X (×2), AS5600 (×2): all share I2C bus on MCU 1. Assign unique I2C addresses or use I2C mux (TCA9548A) if address conflicts arise
-- TB6612FNG: PWMA/PWMB from MCU 1 PWM-capable pins; STBY pin wired to GPIO (hardware motor kill)
+- L298N wiring to the ESP32-S3 Lolin (6 GPIOs):
+  - **ENA / ENB** ← two PWM-capable GPIOs (speed, one per motor). Remove the
+    onboard ENA/ENB jumpers. Driving both EN pins low is the **hardware motor
+    kill** for the safety layer.
+  - **IN1/IN2** (motor A direction) and **IN3/IN4** (motor B direction) ← four
+    plain GPIOs.
+  - **VMOT (VS)** ← 5 V rail direct; **GND** shared with the Lolin (common
+    ground is required for the logic signals).
+  - **5V logic (VSS)**: at 5 V motor supply the onboard 78M05 regulator cannot
+    work (needs >7 V input) — remove the 5V-EN jumper and feed the logic pin
+    from the 5 V rail directly.
+  - The L298N's 3.3 V-logic thresholds are met by the ESP32's GPIOs (V_IH ≈ 2.3 V),
+    so no level shifter is needed on the control lines.
+- **⚠ L298N dropout:** the L298N is a BJT (Darlington) driver that loses
+  ~1.5–3 V internally depending on load. On the 5 V rail the motors effectively
+  see ~2–3.5 V, roughly halving available acceleration vs. an ideal driver.
+  Consequences: keep total mass low, and expect softer balance authority.
+  A drop-in upgrade path back to a MOSFET driver (TB6612FNG/DRV8833) stays open —
+  same PWM+direction control scheme, so no firmware changes beyond pin mapping.
+- **No fault pin:** unlike the TB6612FNG, the L298N has no overcurrent/fault
+  output. The protocol's fault bit 4 is kept reserved; optional detection can be
+  added later via the L298N's SENSE resistor pads + an ADC pin.
 - GC9A01 displays: share SPI MOSI/SCLK, separate CS pins; DC and RST can be shared

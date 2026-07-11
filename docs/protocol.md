@@ -41,7 +41,8 @@ Sent every 50 ms unconditionally.
 - `0` — nominal
 - `1` — angle > 45° (fallen)
 - `2` — watchdog triggered (MCU 2 silent)
-- `4` — motor overcurrent (TB6612FNG fault pin)
+- `4` — motor overcurrent (reserved — the L298N has no fault pin; may be
+  implemented later via its SENSE resistors + ADC)
 
 ---
 

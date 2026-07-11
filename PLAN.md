@@ -33,7 +33,7 @@ it holds balance at 0° and cuts drive — vision crash can never topple the rob
 
 ### M0 — Decisions ✅ resolved
 - [x] **Display type** — Option A: 2× GC9A01 round TFT 1.28" (see §7)
-- [x] Motor driver — TB6612FNG (replaces L298N)
+- [x] Motor driver — L298N (on hand; MOSFET driver upgrade path kept open, see docs/hardware.md)
 - [x] MCU 2 platform — ESP32-S3-CAM (replaces RPi Zero 2W; keeps the stack all-ESP32)
 - [x] Camera — OV2640 (bundled on the ESP32-S3-CAM)
 - [ ] Camera mount — fixed forward vs pan/tilt (still open, see Open Questions)
@@ -43,7 +43,7 @@ See `docs/hardware.md` for the full BOM with part numbers and prices (~$78 total
 - [x] Finalize full component list with unit prices
 - [x] MCU 1: ESP32-S3 Lolin (16MB flash, 8MB PSRAM)
 - [x] MCU 2: ESP32-S3-CAM (OV2640 bundled)
-- [x] Motor driver: TB6612FNG
+- [x] Motor driver: L298N
 - [x] Display: 2× GC9A01 round TFT (Option A)
 - [x] 2× VL53L0X ToF sensors (obstacle flanks)
 - [x] Wheel encoders: 2× AS5600 magnetic
@@ -65,7 +65,7 @@ See `docs/hardware.md` for the full BOM with part numbers and prices (~$78 total
 - [x] Drive mixer (translation + differential turn) — `control.h`
 - [x] Control logic verified against a plant-model simulation (`firmware/test/test_control.cpp`)
 - [ ] Wire `control.h` into an ESP-IDF/Arduino sketch (IMU read → filter → PID → PWM)
-- [ ] TB6612FNG motor driver API (replaces L298N)
+- [ ] L298N motor driver API (ENA/ENB PWM + IN1–IN4 direction)
 - [ ] UART command receiver — parse speed/direction packets from MCU 2 (`protocol.h`)
 - [ ] UART telemetry sender — angle, speed, battery voltage, fault flags
 - [ ] Heartbeat watchdog (500 ms timeout → safe-mode)

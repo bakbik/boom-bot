@@ -43,7 +43,7 @@ enum Fault : uint8_t {
   FAULT_NONE        = 0,
   FAULT_FALLEN      = 1,  // angle > 45°
   FAULT_WATCHDOG    = 2,  // MCU 2 heartbeat lost
-  FAULT_OVERCURRENT = 4,  // TB6612FNG fault pin
+  FAULT_OVERCURRENT = 4,  // reserved — L298N has no fault pin (see docs/protocol.md)
 };
 
 // ---- MCU 2 -> MCU 1 : commands -------------------------------------------

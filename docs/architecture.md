@@ -9,7 +9,7 @@ The robot separates real-time control from high-level vision/behavior into two i
 Owns everything that requires deterministic timing:
 
 - **Balance PID** — 200 Hz loop, complementary filter → Madgwick filter upgrade
-- **Motor control** — PWM to TB6612FNG, direction + speed
+- **Motor control** — L298N: PWM on ENA/ENB (speed) + IN1–IN4 (direction)
 - **IMU** — MPU-6050 over I2C (400 kHz)
 - **Encoders** — 2× AS5600 magnetic encoders for closed-loop speed control
 - **Display** — 2× GC9A01 round TFT via SPI, renders gesture animations
@@ -75,4 +75,5 @@ Both boards run at 3.3V logic — no level shifter needed.
 1. MCU 1 **never** waits on MCU 2 for balance decisions
 2. MCU 2 sends heartbeat every 200 ms; MCU 1 triggers safe mode after 500 ms silence
 3. ToF obstacle data is processed on MCU 1 directly — no vision latency in the avoidance path
-4. Motor driver has hardware enable pin tied to MCU 1 GPIO — can cut motors instantly
+4. Motor driver enable pins (L298N ENA/ENB, jumpers removed) are driven by MCU 1
+   GPIOs — pulling both low cuts the motors instantly

@@ -14,7 +14,7 @@ Dual-MCU self-balancing robot with camera vision, obstacle avoidance, person fol
 │  • Safety watchdog          │        │  • Telemetry aggregator      │
 └─────────────────────────────┘        └──────────────────────────────┘
         │                                          │
-   TB6612FNG                               Pi Camera (OV2640)
+   L298N                                   Pi Camera (OV2640)
    2× DC motors                            2× VL53L0X ToF
    2× GC9A01 display (eyes)
 ```
@@ -26,7 +26,7 @@ Dual-MCU self-balancing robot with camera vision, obstacle avoidance, person fol
 | MCU 1 | ESP32-S3 Lolin | Balance, motors, display |
 | MCU 2 | ESP32-S3-CAM | Vision, WiFi, behavior |
 | IMU | MPU-6050 | I2C on MCU 1 |
-| Motor driver | TB6612FNG | Replaces L298N |
+| Motor driver | L298N | Note ~1.5–3 V dropout on the 5 V rail — see `docs/hardware.md` |
 | Display | 2× GC9A01 round TFT 1.28" | SPI, driven from MCU 1 |
 | Obstacle sensors | 2× VL53L0X ToF | I2C on MCU 1, left+right flanks |
 | Encoders | 2× AS5600 magnetic | I2C on MCU 1 |
@@ -73,7 +73,7 @@ boom-bot/
   │              └── onboard LDO → MPU-6050, ToF, encoders (3.3V)
   │              └── SPI → 2× GC9A01 display (3.3V)
   ├── USB-A → ESP32-S3-CAM (5V pin)
-  └── 5V direct → TB6612FNG VMOT
+  └── 5V direct → L298N VS (motor supply) + VSS (logic; 5V-EN jumper removed)
 ```
 
 ## Quick Start
