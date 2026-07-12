@@ -50,9 +50,16 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 | L298N `IN3` | Lolin `GPIO12` | right direction |
 | L298N `IN4` | Lolin `GPIO13` | right direction |
 | L298N `VS` (VMOT, 12V terminal) | 5 V rail `+` | motor power |
-| L298N `VSS` (5V terminal, **5V-EN jumper removed**) | 5 V rail `+` | logic power |
+| L298N `VSS` (5V terminal, **5V-EN jumper removed**) | 5 V rail `+` | logic power — or bridge from VS locally, see below |
 | L298N `GND` | common ground | shared with everything |
 
+- **Single 5 V run option:** instead of two wires from the 5 V rail, run one
+  wire to `VS` and add a short (~2 cm) jumper wire between the `VS` and `5V`
+  screw terminals at the board. Electrically identical. What you must **not**
+  do on a 5 V supply is leave the 5V-EN jumper ON with `VSS` unwired: the
+  onboard 78M05 regulator only outputs ~3.5–4 V from a 5 V input (needs ≥7 V),
+  below the L298N's 4.5 V logic minimum — it may work on the bench and glitch
+  under motor load.
 - Forward = `IN1 high, IN2 low` (left) and `IN3 high, IN4 low` (right), EN = PWM
   duty. If a wheel spins the wrong way on the bench, swap that motor's two wires
   at the OUT terminals (or invert its IN pair in firmware) — N20 `+`/`−` marking
