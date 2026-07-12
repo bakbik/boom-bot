@@ -58,17 +58,19 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 | L298N `ENB` (jumper removed) | Lolin `GPIO4` | PWM — right speed |
 | L298N `IN3` | Lolin `GPIO12` | right direction |
 | L298N `IN4` | Lolin `GPIO13` | right direction |
-| L298N `VS` (VMOT, 12V terminal) | 5 V rail `+` | motor power |
-| L298N `VSS` (5V terminal, **5V-EN jumper removed**) | 5 V rail `+` | logic power — or bridge from VS locally, see below |
-| L298N `GND` | common ground | shared with everything |
+| L298N `VS` (VMOT, 12V terminal) | **2S pack `+` (7.4 V)** | motor power |
+| L298N `VSS` (5V terminal, **5V-EN jumper removed**) | 5 V rail `+` | logic power |
+| L298N `GND` | common ground (2S `−` + power bank GND + Lolin GND) | shared with everything |
 
-- **Single 5 V run option:** instead of two wires from the 5 V rail, run one
-  wire to `VS` and add a short (~2 cm) jumper wire between the `VS` and `5V`
-  screw terminals at the board. Electrically identical. What you must **not**
-  do on a 5 V supply is leave the 5V-EN jumper ON with `VSS` unwired: the
-  onboard 78M05 regulator only outputs ~3.5–4 V from a 5 V input (needs ≥7 V),
-  below the L298N's 4.5 V logic minimum — it may work on the bench and glitch
-  under motor load.
+- **⚠ Motor rail is 7.4 V (2S Li-ion), not the 5 V rail** — changed 2026-07-12
+  after bench testing proved the 5 V rail left the motors with <50% of rated
+  torque (L298N drops ~2.4 V; at VS=5 V the motors saw ~2.6 V). With a 2S pack
+  the motors see ~5 V — full rating. **Never bridge VS to the 5 V terminal in
+  this configuration**, and never connect 2S+ to any Lolin pin (the Lolin's
+  5 V input tolerates ~6 V max).
+- 2S pack handling: use a protected pack (BMS) or an inline 2–3 A fuse; stop
+  using below ~6.8 V; disconnect when idle; power-up order = power bank
+  (Lolin) first, then the 2S.
 - Forward = `IN1 high, IN2 low` (left) and `IN3 high, IN4 low` (right), EN = PWM
   duty. If a wheel spins the wrong way on the bench, swap that motor's two wires
   at the OUT terminals (or invert its IN pair in firmware) — N20 `+`/`−` marking
@@ -79,18 +81,22 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 ## Power tree
 
 ```
- [5V 5000 mAh power bank, 3A, always-on]
+ [2S Li-ion pack, 7.4 V nominal, protected]      ← MOTOR POWER ONLY
+   ├── + → L298N VS (12V terminal)
+   └── − → common ground
+
+ [5V 5000 mAh power bank, 3A, always-on]         ← LOGIC POWER
    │
    ├── USB-A #1 → USB-C cable → Lolin USB-C port (powers the board; its
    │              onboard regulator feeds the 3.3 V rail below)
    │
    ├── USB-A #2 → cut USB cable / breakout: red = 5 V, black = GND
-   │      ├── 5 V → L298N VS   (motor supply)
-   │      ├── 5 V → L298N VSS  (logic — onboard 78M05 can't regulate from 5 V,
-   │      │                     so remove the 5V-EN jumper and feed VSS direct)
-   │      └── 5 V → 100k ── GPIO15 (ADC) ── 100k ── GND  (battery sense divider)
+   │      └── 5 V → L298N VSS ("5V" terminal; 5V-EN jumper removed)
    │
    └── (MCU 2 / ESP32-S3-CAM powered from its own USB-A or a Y-split)
+
+ ⚠ 2S+ must never touch the 5 V rail or any Lolin pin. Battery sense divider
+   (GPIO15) deferred — needs re-ratioing for 8.4 V and an ADC1 pin (see pins.h).
 
  Lolin 3V3 pin → MPU-6050 VCC, 2× VL53L0X VCC, 2× AS5600 VCC,
                  2× GC9A01 VCC + BLK (backlight tied high)

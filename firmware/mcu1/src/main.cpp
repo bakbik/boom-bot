@@ -197,9 +197,10 @@ static void motorsInit() {
   pwmWritePin(pins::kMotorEnRight, kPwmChanRight, 0);
 }
 
-// L298N+N20 deadband: below this duty (%) the motors don't move at all, so
+// Motor stiction deadband: below this duty (%) the motors don't move, so
 // every nonzero command is remapped into [deadband, 100]. Tune live: z/x keys.
-static float g_deadbandPct = 25.0f;
+// 15% suits the 2S-fed rail; was 25% on the weak 5 V rail.
+static float g_deadbandPct = 15.0f;
 
 // cmd in [-100, 100]; sign = direction, magnitude = duty.
 static void motorSet(int enPin, int chan, int inA, int inB, float cmd) {
@@ -236,9 +237,9 @@ static void motorsKill() {
 // it balanceable, not the gain values.
 static control::BalanceConfig benchConfig() {
   control::BalanceConfig c = control::defaultBalanceConfig();
-  c.angle.kp = 38.0f;
+  c.angle.kp = 40.0f;   // tuned for the 2S-powered drive (motor rail 7.4 V)
   c.angle.ki = 10.0f;
-  c.angle.kd = 0.5f;
+  c.angle.kd = 0.75f;
   return c;
 }
 
@@ -247,9 +248,9 @@ static control::BalanceController g_ctrl(benchConfig());
 static control::DriveMixer g_mixer;
 
 // Encoder-less wheel-velocity estimate from the motor command (see control.h).
-// Nominal constants for the L298N-at-5V + N20 + 581 g robot.
+// Nominal constants for the 2S-fed L298N (~5 V at the motors) + 581 g robot.
 static control::VelocityEstimator g_velEst(
-    control::VelocityEstimatorConfig{4.65f, 0.5f, 0.8f});
+    control::VelocityEstimatorConfig{8.95f, 0.95f, 0.8f});
 
 static float g_gyroBias = 0.0f;
 static float g_trimDeg = -8.0f;     // bench-measured starting balance point

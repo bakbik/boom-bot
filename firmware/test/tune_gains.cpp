@@ -6,8 +6,8 @@
 //   J_pitch     1.379e-3 kg*m^2     (CAD principal moment about the axle axis)
 //   wheel r     32.5 mm             (65 mm wheels, BOM)
 //   L           30 mm               (axle->CoM, CAD-verified)
-//   drive       L298N at 5 V rail: ~3 V effective at the motors ->
-//               ~0.045 N*m stall per motor, ~0.5 m/s no-load base speed
+//   drive       L298N fed from a 2S pack (7.4 V): ~5 V at the motors ->
+//               ~0.085 N*m stall per motor, ~0.95 m/s no-load base speed
 //
 // Faithful to the firmware: angle-only control (no encoders yet, measured
 // velocity input is 0), 200 Hz loop, motor deadband compensated away.
@@ -28,9 +28,9 @@ struct RealPlant {
   static constexpr double kL = 0.030;         // m, axle->CoM (CAD-verified 2026-07-12)
   static constexpr double kR = 0.0325;        // m wheel radius
   static constexpr double kG = 9.81;
-  // L298N-limited drive: two N20s, ~3 V effective of a 6 V/0.09 N*m-ish spec
-  static constexpr double kStallForce = 2.7;  // N at the contact patch (both wheels)
-  static constexpr double kVmax = 0.5;        // m/s no-load at ~3 V
+  // L298N fed from a 2S pack: ~5 V effective at the motors
+  static constexpr double kStallForce = 5.2;  // N, both wheels (2S pack: ~5 V at motors)
+  static constexpr double kVmax = 0.95;       // m/s no-load at ~5 V
   static constexpr double kFric = 0.8;        // 1/s viscous on base velocity
 
   double theta = 0.0, omega = 0.0, vel = 0.0, pos = 0.0;

@@ -70,12 +70,18 @@ boom-bot/
 ## Power Architecture
 
 ```
-[5V 5000mAh 3A power bank — always-on mode]
-  ├── USB-A → ESP32-S3 Lolin (5V pin)
+[2S Li-ion pack 7.4V — motor power ONLY]
+  └── + → L298N VS (motors see ~5V after the L298N's ~2.4V drop)
+
+[5V 5000mAh 3A power bank — always-on mode — logic power]
+  ├── USB-A → ESP32-S3 Lolin (USB-C)
   │              └── onboard LDO → MPU-6050, ToF, encoders (3.3V)
   │              └── SPI → 2× GC9A01 display (3.3V)
   ├── USB-A → ESP32-S3-CAM (5V pin)
-  └── 5V direct → L298N VS (motor supply) + VSS (logic; 5V-EN jumper removed)
+  └── 5V → L298N VSS (logic; 5V-EN jumper removed)
+
+⚠ All grounds common. 2S+ must never touch the 5V rail or the Lolin.
+  (VS was originally on the 5V rail; motors only got ~2.6V — too weak to balance.)
 ```
 
 ## Quick Start

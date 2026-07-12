@@ -70,8 +70,8 @@ bank is proven — pin-budget and SPI bandwidth to be confirmed then.
 
 | Qty | Part | Notes | Est. Price |
 |-----|------|-------|-----------|
-| 1 | 5V 5000mAh power bank, 3A output, always-on | Anker PowerCore or similar | ~$20 |
-| — | *Alternative:* 2× 18650 + TP4056 + 5V boost | No auto-shutoff risk, DIY | ~$8 |
+| 1 | 5V 5000mAh power bank, 3A output, always-on | Logic rail: Lolin, CAM, L298N VSS | ~$20 |
+| 1 | 2S Li-ion pack (2× 18650, protected/BMS) | **Motor rail** → L298N VS; added after bench testing showed 5 V VS leaves motors <50% torque | ~$8 |
 
 **Note on auto-shutoff:** USB power banks cut output below ~80–100 mA.
 A balanced idle robot may trigger this. Either use an always-on bank or add
