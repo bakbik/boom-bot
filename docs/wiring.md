@@ -32,7 +32,7 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
                 │ ENA  IN1  IN2  IN3  IN4  ENB  │  VS   VSS   GND
                 └──┬────┬────┬────┬────┬────┬───┴───┬────┬─────┬──┘
                    │    │    │    │    │    │       │    │     │
-      Lolin GPIO:  5    6    7    16   47   15      5V   5V   GND
+      Lolin GPIO:  5    6    7    12   13   4       5V   5V   GND
                  (PWM)                    (PWM)    rail rail shared
 ```
 
@@ -46,9 +46,9 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 | L298N `ENA` (jumper removed) | Lolin `GPIO5` | PWM — left speed |
 | L298N `IN1` | Lolin `GPIO6` | left direction |
 | L298N `IN2` | Lolin `GPIO7` | left direction |
-| L298N `ENB` (jumper removed) | Lolin `GPIO15` | PWM — right speed |
-| L298N `IN3` | Lolin `GPIO16` | right direction |
-| L298N `IN4` | Lolin `GPIO47` | right direction |
+| L298N `ENB` (jumper removed) | Lolin `GPIO4` | PWM — right speed |
+| L298N `IN3` | Lolin `GPIO12` | right direction |
+| L298N `IN4` | Lolin `GPIO13` | right direction |
 | L298N `VS` (VMOT, 12V terminal) | 5 V rail `+` | motor power |
 | L298N `VSS` (5V terminal, **5V-EN jumper removed**) | 5 V rail `+` | logic power |
 | L298N `GND` | common ground | shared with everything |
@@ -57,7 +57,7 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
   duty. If a wheel spins the wrong way on the bench, swap that motor's two wires
   at the OUT terminals (or invert its IN pair in firmware) — N20 `+`/`−` marking
   varies between batches.
-- **Motor kill:** `GPIO5` and `GPIO15` low → both motors free-wheel regardless
+- **Motor kill:** `GPIO5` and `GPIO4` low → both motors free-wheel regardless
   of IN pins. This is the safety watchdog's hardware cut.
 
 ## Power tree
@@ -72,7 +72,7 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
    │      ├── 5 V → L298N VS   (motor supply)
    │      ├── 5 V → L298N VSS  (logic — onboard 78M05 can't regulate from 5 V,
    │      │                     so remove the 5V-EN jumper and feed VSS direct)
-   │      └── 5 V → 100k ── GPIO4 (ADC) ── 100k ── GND   (battery sense divider)
+   │      └── 5 V → 100k ── GPIO15 (ADC) ── 100k ── GND  (battery sense divider)
    │
    └── (MCU 2 / ESP32-S3-CAM powered from its own USB-A or a Y-split)
 
@@ -90,7 +90,7 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 |------|-----------|-------------|----------|
 | 1 | I/O | AS5600 (right) SDA | I2C1 data |
 | 2 | out | AS5600 (right) SCL | I2C1 clock |
-| 4 | in (ADC1_CH3) | 100k/100k divider on 5 V rail | battery voltage (reads ≈2.5 V) |
+| 4 | out (PWM) | L298N ENB | right motor speed |
 | 5 | out (PWM) | L298N ENA | left motor speed |
 | 6 | out | L298N IN1 | left motor dir |
 | 7 | out | L298N IN2 | left motor dir |
@@ -98,20 +98,20 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 | 9 | out | same devices, SCL | I2C0 clock |
 | 10 | out | GC9A01 left CS | display select L |
 | 11 | out | both GC9A01 SDA/MOSI | SPI data (shared) |
-| 12 | out | both GC9A01 SCL/SCLK | SPI clock (shared) |
-| 13 | out | GC9A01 right CS | display select R |
+| 12 | out | L298N IN3 | right motor dir |
+| 13 | out | L298N IN4 | right motor dir |
 | 14 | out | both GC9A01 DC | data/command (shared) |
-| 15 | out (PWM) | L298N ENB | right motor speed |
-| 16 | out | L298N IN3 | right motor dir |
+| 15 | in (ADC2_CH4) | 100k/100k divider on 5 V rail | battery voltage (reads ≈2.5 V; ADC2 is fine — MCU 1 never enables WiFi) |
 | 17 | out | ESP32-S3-CAM RX | UART1 TX (115200) |
 | 18 | in | ESP32-S3-CAM TX | UART1 RX |
 | 21 | out | both GC9A01 RST | display reset (shared) |
+| 39 | out | GC9A01 right CS | display select R |
+| 40 | out | both GC9A01 SCL/SCLK | SPI clock (shared) |
 | 41 | out | VL53L0X left XSHUT | ToF re-address at boot |
 | 42 | out | VL53L0X right XSHUT | ToF re-address at boot |
-| 47 | out | L298N IN4 | right motor dir |
 | 3V3 | — | all sensor/display VCC | 3.3 V rail |
 | GND | — | common ground | — |
-| **spare** | | GPIO 39, 40, 48 | future (touch sensor, speaker, mouth display CS…) |
+| **spare** | | GPIO 16, 47, 48 | future (touch sensor, speaker, mouth display CS…) |
 
 ## I2C address plan
 
@@ -131,10 +131,10 @@ re-address it to 0x30 → release right (42), which comes up at the default 0x29
 
 ## Display SPI plan
 
-Both GC9A01s share MOSI (11), SCLK (12), DC (14), RST (21); only CS differs
-(10 = left eye, 13 = right eye). BLK (backlight) tied to 3V3. When the
+Both GC9A01s share MOSI (11), SCLK (40), DC (14), RST (21); only CS differs
+(10 = left eye, 39 = right eye). BLK (backlight) tied to 3V3. When the
 lower-face "mouth" display is added later it joins the same bus with a spare
-GPIO (39/40/48) as its CS.
+GPIO (16/47/48) as its CS.
 
 ## Breakout module pinouts — every physical pin accounted for
 
@@ -154,7 +154,7 @@ stay unconnected (NC).
 | XDA | aux-I2C data (for an external magnetometer slaved to the MPU) | NC |
 | XCL | aux-I2C clock | NC |
 | AD0 | address select: low = 0x68, high = 0x69 | NC (onboard pull-down → 0x68) |
-| INT | data-ready interrupt | NC (we poll at 200 Hz; optional → spare GPIO39 later) |
+| INT | data-ready interrupt | NC (we poll at 200 Hz; optional → a spare GPIO later) |
 
 ### VL53L0X breakout — 6 pins (×2)
 
@@ -185,10 +185,10 @@ stay unconnected (NC).
 |-----|---------|-----------|
 | VCC | power | 3V3 |
 | GND | ground | GND |
-| SCL/CLK | SPI clock | GPIO12 (shared) |
+| SCL/CLK | SPI clock | GPIO40 (shared) |
 | SDA/DIN | SPI data | GPIO11 (shared) |
 | DC | data/command | GPIO14 (shared) |
-| CS | chip select | left: GPIO10 · right: GPIO13 |
+| CS | chip select | left: GPIO10 · right: GPIO39 |
 | RST | reset | GPIO21 (shared) |
 | BLK | backlight enable | 3V3 (always on; a spare GPIO later for dimming) |
 
