@@ -58,8 +58,10 @@ in USB, then retry upload.
 | `a` | re-allow arming |
 | `+` / `-` | shift the balance point by ±0.1° (find where it stands stillest) |
 
-Telemetry streams as `angle,armed` CSV at 20 Hz — the Arduino serial plotter
-graphs it directly.
+Output is quiet by default — only state transitions print (READY / ARMED /
+FALLEN / DISARMED), because streaming over native-USB serial can stall the
+balance loop. Press `t` to toggle a 10 Hz `angle,armed` CSV stream when
+tuning; the Arduino serial plotter graphs it directly.
 
 ## Tuning notes
 
