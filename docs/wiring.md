@@ -136,6 +136,62 @@ Both GC9A01s share MOSI (11), SCLK (12), DC (14), RST (21); only CS differs
 lower-face "mouth" display is added later it joins the same bus with a spare
 GPIO (39/40/48) as its CS.
 
+## Breakout module pinouts — every physical pin accounted for
+
+I2C is a shared two-wire bus: every device hangs on the same SDA+SCL pair and
+is selected by its 7-bit *address* (e.g. MPU-6050 = 0x68), not by dedicated
+wires. So most breakout pins beyond power + SDA/SCL are optional features and
+stay unconnected (NC).
+
+### GY-521 (MPU-6050) — 8 pins
+
+| Pin | Purpose | Connect to |
+|-----|---------|-----------|
+| VCC | power | 3V3 |
+| GND | ground | GND |
+| SCL | I2C clock | GPIO9 |
+| SDA | I2C data | GPIO8 |
+| XDA | aux-I2C data (for an external magnetometer slaved to the MPU) | NC |
+| XCL | aux-I2C clock | NC |
+| AD0 | address select: low = 0x68, high = 0x69 | NC (onboard pull-down → 0x68) |
+| INT | data-ready interrupt | NC (we poll at 200 Hz; optional → spare GPIO39 later) |
+
+### VL53L0X breakout — 6 pins (×2)
+
+| Pin | Purpose | Connect to |
+|-----|---------|-----------|
+| VIN | power | 3V3 |
+| GND | ground | GND |
+| SCL | I2C clock | GPIO9 |
+| SDA | I2C data | GPIO8 |
+| XSHUT | shutdown/reset — used to re-address at boot | left: GPIO41, right: GPIO42 |
+| GPIO1 | measurement-ready interrupt | NC (polled) |
+
+### AS5600 breakout — typically 5–7 pins (×2)
+
+| Pin | Purpose | Connect to |
+|-----|---------|-----------|
+| VCC | power | 3V3 |
+| GND | ground | GND |
+| SCL | I2C clock | left: GPIO9 · right: GPIO2 |
+| SDA | I2C data | left: GPIO8 · right: GPIO1 |
+| DIR | rotation direction sense | **tie to GND** (do not float — defines CW = increasing angle) |
+| OUT | analog/PWM angle output | NC (we read over I2C) |
+| GPO | programmable output (if present) | NC |
+
+### GC9A01 round display — 7–8 pins (×2)
+
+| Pin | Purpose | Connect to |
+|-----|---------|-----------|
+| VCC | power | 3V3 |
+| GND | ground | GND |
+| SCL/CLK | SPI clock | GPIO12 (shared) |
+| SDA/DIN | SPI data | GPIO11 (shared) |
+| DC | data/command | GPIO14 (shared) |
+| CS | chip select | left: GPIO10 · right: GPIO13 |
+| RST | reset | GPIO21 (shared) |
+| BLK | backlight enable | 3V3 (always on; a spare GPIO later for dimming) |
+
 ## Bench bring-up order
 
 1. **Grounds first** — verify continuity between power bank GND, Lolin GND,
