@@ -100,6 +100,11 @@ a 100 mA dummy load (resistor or LED array).
 
 ## Wiring Notes
 
+> Full pin-by-pin wiring (every Lolin GPIO, motor terminals, power tree,
+> bring-up order): see **[`wiring.md`](wiring.md)** + the diagram in
+> [`wiring-diagram.svg`](wiring-diagram.svg). Firmware pin map:
+> [`firmware/common/pins.h`](../firmware/common/pins.h).
+
 - ESP32-S3 Lolin ↔ ESP32-S3-CAM: UART on GPIO17/18, shared GND, no level shifter needed (both 3.3V)
 - MPU-6050, VL53L0X (×2), AS5600 (×2): all share I2C bus on MCU 1. Assign unique I2C addresses or use I2C mux (TCA9548A) if address conflicts arise
 - L298N wiring to the ESP32-S3 Lolin (6 GPIOs):

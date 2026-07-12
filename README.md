@@ -47,6 +47,8 @@ boom-bot/
     architecture.md
     protocol.md    UART packet spec between MCU 1 and MCU 2
     hardware.md    Full BOM with part numbers and prices
+    wiring.md      Pin-by-pin wiring: motors, driver, sensors, power
+    chassis-design.md  Control-relevant dimensions for the CAD work
   PLAN.md          Full milestone breakdown
 ```
 
