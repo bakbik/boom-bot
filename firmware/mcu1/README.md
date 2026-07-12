@@ -56,7 +56,8 @@ in USB, then retry upload.
 | `d` | disarm immediately (motors off) |
 | `t` | toggle the 10 Hz angle stream (off by default) |
 | `a` | re-allow arming |
-| `+` / `-` | shift the balance point by ±0.1° (find where it stands stillest) |
+| `+` / `-` | shift the balance point by ±0.5° |
+| `b` | toggle auto-trim (ON by default — learns the balance point by steering trim until average motor effort is zero; handles an off-center battery/CoM) |
 | `q` / `w` | angle kp −1 / +1 (response strength) |
 | `e` / `r` | angle kd −0.1 / +0.1 (damping) |
 | `z` / `x` | motor deadband −2% / +2% (min duty where motors actually move) |

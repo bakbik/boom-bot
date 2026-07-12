@@ -185,7 +185,14 @@ static control::DriveMixer g_mixer;
 
 
 static float g_gyroBias = 0.0f;
-static float g_trimDeg = 0.0f;      // balance-point offset, tuned over serial
+static float g_trimDeg = 0.0f;      // balance-point offset (auto-learned + manual)
+
+// Auto-trim: if the motors persistently push one way, the balance setpoint is
+// wrong that way (off-center CoM, e.g. battery not centered). Slowly steer the
+// trim until average motor effort is zero. 'b' toggles.
+static bool g_autoTrim = true;
+static const float kAutoTrimRate = 0.02f;  // deg per (motor-unit * s)
+static const float kTrimLimitDeg = 10.0f;
 static bool g_armAllowed = true;
 static bool g_armed = false;
 static uint32_t g_uprightSinceMs = 0;
@@ -260,8 +267,9 @@ static void handleSerial() {
     if (c == 'd') { g_armAllowed = false; g_armed = false; motorsKill(); Serial.println("# DISARMED"); }
     if (c == 'a') { g_armAllowed = true; Serial.println("# READY - hold upright to arm"); }
     if (c == 't') { g_telemetry = !g_telemetry; Serial.println(g_telemetry ? "# telemetry ON" : "# telemetry OFF"); }
-    if (c == '+') { g_trimDeg += 0.1f; printGains(); }
-    if (c == '-') { g_trimDeg -= 0.1f; printGains(); }
+    if (c == '+') { g_trimDeg += 0.5f; printGains(); }
+    if (c == '-') { g_trimDeg -= 0.5f; printGains(); }
+    if (c == 'b') { g_autoTrim = !g_autoTrim; Serial.println(g_autoTrim ? "# auto-trim ON" : "# auto-trim OFF"); }
     if (c == 'q') { g_angleGains.kp -= 1.0f; gainsChanged = true; }
     if (c == 'w') { g_angleGains.kp += 1.0f; gainsChanged = true; }
     if (c == 'e') { g_angleGains.kd -= 0.1f; gainsChanged = true; }
@@ -327,6 +335,13 @@ void loop() {
       // No encoders yet: measured velocity 0, target velocity 0 -> angle-only.
       const float motor = g_ctrl.update(theta, 0.0f, 0.0f, kLoopDt);
       motorsApply(g_mixer.mix(motor, proto::Direction::Stop, 0));
+
+      // Balance-point learner: persistent backward drive means the setpoint
+      // is behind the true equilibrium (raise trim), and vice versa.
+      if (g_autoTrim) {
+        g_trimDeg -= kAutoTrimRate * motor * kLoopDt;
+        g_trimDeg = control::clampf(g_trimDeg, -kTrimLimitDeg, kTrimLimitDeg);
+      }
     }
   }
 
