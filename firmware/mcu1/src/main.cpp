@@ -23,7 +23,7 @@ using namespace boombot;
 // mounting differs, fix signs here, not in control.h.
 static const float kAngleSign = 1.0f;   // flip if reported angle has wrong sign
 static const float kGyroSign  = 1.0f;   // flip if angle drifts when rotating
-static const float kMotorSign = 1.0f;   // flip if robot drives away from the fall
+static const float kMotorSign = -1.0f;  // bench-verified 2026-07-12: +1 drove away from the fall
 
 // ---- MPU-6050 (raw I2C, no library) ----------------------------------------
 static uint8_t g_mpuAddr = 0x68;  // discovered at boot (0x68 or 0x69)
