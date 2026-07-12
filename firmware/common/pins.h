@@ -50,8 +50,11 @@ constexpr int kUartRx = 18;  // <- CAM TX
 
 // ---- Battery voltage sense --------------------------------------------------
 // 5V rail -> 100k/100k divider -> ADC (reads rail/2, ~2.5V nominal).
-// ADC2 channel: safe here because MCU 1 never enables WiFi (ADC2's only conflict).
-constexpr int kVbatSense = 15;  // ADC2_CH4
+// NOTE: GPIO15 is ADC2, which conflicts with WiFi — and MCU 1 now runs a WiFi
+// AP for the bring-up console. Before wiring battery sense, either move it to
+// an ADC1 pin (GPIO1-10; only GPIO3 is unassigned, a mild strapping pin) or
+// drop the bring-up AP once the MCU 2 link takes over control.
+constexpr int kVbatSense = 15;  // ADC2_CH4 — see note above, not wired yet
 
 // Spare, safe-to-use: GPIO 16, 47, 48.
 

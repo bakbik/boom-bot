@@ -1,17 +1,25 @@
 // BoomBot MCU 1 — minimal balance firmware.
-// Scope: MPU-6050 (I2C0) + L298N only. No UART link, no displays, no encoders
-// yet — the robot just stands up. Pin map: firmware/common/pins.h.
+// Scope: MPU-6050 (I2C0) + L298N + WiFi bring-up console. No UART link,
+// displays, or encoders yet. Pin map: firmware/common/pins.h.
+//
+// Wireless console: the board runs a WiFi AP (SSID "BoomBot", pass
+// "boombot123"). Connect and run `nc 192.168.4.1 23` (or PuTTY, raw mode) —
+// same commands and output as USB serial, both work simultaneously.
 //
 // Bring-up (wheels OFF the ground first — see firmware/mcu1/README.md):
 //   1. Power on with the robot lying flat and still: gyro calibrates (~2 s).
 //   2. Stand it upright and hold: when |angle| < 2 deg for 1 s it arms.
 //   3. Tilt forward: wheels must spin forward (driving under the fall).
-//      If they spin backward, flip kMotorSign below.
-// Serial (115200): streams "angle,motor" CSV at 20 Hz for tuning plots.
-//   'd' = disarm now   'a' = allow arming   '+'/'-' = trim balance point 0.1 deg
+// Console keys:
+//   'd' disarm  'a' allow arming  't' toggle angle stream  'g' print gains
+//   'q'/'w' kp -/+1   'e'/'r' kd -/+0.1   'z'/'x' deadband -/+2%
+//   '+'/'-' trim +/-0.5 deg   'b' toggle balance-point auto-trim
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <WiFi.h>
+
+#include <stdarg.h>
 
 #include "control.h"
 #include "pins.h"
@@ -19,11 +27,57 @@
 using namespace boombot;
 
 // ---- orientation / sign configuration -------------------------------------
-// Assumes the GY-521 is mounted flat, X axis pointing forward. If your
-// mounting differs, fix signs here, not in control.h.
 static const float kAngleSign = 1.0f;   // flip if reported angle has wrong sign
 static const float kGyroSign  = 1.0f;   // flip if angle drifts when rotating
-static const float kMotorSign = -1.0f;  // bench-verified 2026-07-12: +1 drove away from the fall
+static const float kMotorSign = -1.0f;  // bench-verified 2026-07-12
+
+// ---- console: USB serial + WiFi TCP, same interface ------------------------
+static const char* kApSsid = "BoomBot";
+static const char* kApPass = "boombot123";
+static WiFiServer g_tcpServer(23);
+static WiFiClient g_tcpClient;
+
+static void conWrite(const char* s) {
+  Serial.print(s);
+  if (g_tcpClient && g_tcpClient.connected()) g_tcpClient.print(s);
+}
+
+static void conPrintln(const char* s) {
+  conWrite(s);
+  conWrite("\n");
+}
+
+static void conPrintf(const char* fmt, ...) {
+  char buf[192];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof buf, fmt, ap);
+  va_end(ap);
+  conWrite(buf);
+}
+
+static void pollTcpClient() {
+  if (g_tcpServer.hasClient()) {
+    if (g_tcpClient) g_tcpClient.stop();  // newest connection wins
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    g_tcpClient = g_tcpServer.accept();
+#else
+    g_tcpClient = g_tcpServer.available();
+#endif
+    conPrintln("# console client connected");
+  }
+}
+
+// Next command byte from USB or TCP; -1 when none. Skips CR/LF and telnet
+// negotiation bytes so both `nc` and telnet clients work.
+static int conRead() {
+  int c = -1;
+  if (Serial.available()) c = Serial.read();
+  else if (g_tcpClient && g_tcpClient.connected() && g_tcpClient.available())
+    c = g_tcpClient.read();
+  if (c == '\r' || c == '\n' || c >= 0x80) return -1;
+  return c;
+}
 
 // ---- MPU-6050 (raw I2C, no library) ----------------------------------------
 static uint8_t g_mpuAddr = 0x68;  // discovered at boot (0x68 or 0x69)
@@ -40,21 +94,19 @@ static bool i2cPing(uint8_t addr) {
   return Wire.endTransmission() == 0;
 }
 
-// Scan the whole bus and print every responding address.
 static int i2cScan(int sda, int scl) {
   Wire.end();
   Wire.begin(sda, scl, 400000);
   delay(20);
   int found = 0;
-  Serial.printf("# scan SDA=%d SCL=%d:", sda, scl);
+  conPrintf("# scan SDA=%d SCL=%d:", sda, scl);
   for (uint8_t a = 1; a < 127; ++a) {
-    if (i2cPing(a)) { Serial.printf(" 0x%02X", a); ++found; }
+    if (i2cPing(a)) { conPrintf(" 0x%02X", a); ++found; }
   }
-  Serial.println(found ? "" : " (nothing - check VCC/GND/wires)");
+  conPrintln(found ? "" : " (nothing - check VCC/GND/wires)");
   return found;
 }
 
-// Try both pin orientations and both MPU addresses; adopt whatever answers.
 static bool mpuProbe() {
   const int orient[2][2] = {{pins::kI2c0Sda, pins::kI2c0Scl},
                             {pins::kI2c0Scl, pins::kI2c0Sda}};
@@ -65,10 +117,10 @@ static bool mpuProbe() {
     for (uint8_t addr = 0x68; addr <= 0x69; ++addr) {
       if (i2cPing(addr)) {
         g_mpuAddr = addr;
-        Serial.printf("# MPU found: addr 0x%02X, SDA=%d SCL=%d%s\n",
-                      addr, orient[o][0], orient[o][1],
-                      o == 1 ? "  (PINS SWAPPED vs pins.h - fix wiring or pins.h)"
-                             : "");
+        conPrintf("# MPU found: addr 0x%02X, SDA=%d SCL=%d%s\n",
+                  addr, orient[o][0], orient[o][1],
+                  o == 1 ? "  (PINS SWAPPED vs pins.h - fix wiring or pins.h)"
+                         : "");
         return true;
       }
     }
@@ -111,8 +163,6 @@ static bool mpuRead(MpuSample& s) {
 static const int kPwmFreq = 20000;  // above audible
 static const int kPwmRes  = 10;     // 0..1023
 
-// Arduino-ESP32 core 3.x renamed the LEDC API (ledcSetup/ledcAttachPin ->
-// ledcAttach, channel-based write -> pin-based write). Support both.
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
 static void pwmInitPin(int pin, int /*channel*/) { ledcAttach(pin, kPwmFreq, kPwmRes); }
 static void pwmWritePin(int pin, int /*channel*/, uint32_t duty) { ledcWrite(pin, duty); }
@@ -170,11 +220,12 @@ static void motorsKill() {
 }
 
 // ---- state -------------------------------------------------------------------
-// Bench gains: hotter than the sim defaults because the real L298N+N20 drive
-// has far less authority than the simulated plant. Tune live: q/w e/r keys.
+// Bench gains (2026-07-12 session): kp=20 ki=5 chosen on hardware; kd kept
+// moderate — high kd amplifies sensor noise into motor thrash.
 static control::BalanceConfig benchConfig() {
   control::BalanceConfig c = control::defaultBalanceConfig();
-  c.angle.kp = 18.0f;
+  c.angle.kp = 20.0f;
+  c.angle.ki = 5.0f;
   c.angle.kd = 1.2f;
   return c;
 }
@@ -183,16 +234,16 @@ static control::ComplementaryFilter g_filter(0.98f);
 static control::BalanceController g_ctrl(benchConfig());
 static control::DriveMixer g_mixer;
 
-
 static float g_gyroBias = 0.0f;
-static float g_trimDeg = 0.0f;      // balance-point offset (auto-learned + manual)
+static float g_trimDeg = -8.0f;     // bench-measured starting balance point
 
 // Auto-trim: if the motors persistently push one way, the balance setpoint is
 // wrong that way (off-center CoM, e.g. battery not centered). Slowly steer the
 // trim until average motor effort is zero. 'b' toggles.
 static bool g_autoTrim = true;
 static const float kAutoTrimRate = 0.02f;  // deg per (motor-unit * s)
-static const float kTrimLimitDeg = 10.0f;
+static const float kTrimLimitDeg = 15.0f;
+
 static bool g_armAllowed = true;
 static bool g_armed = false;
 static uint32_t g_uprightSinceMs = 0;
@@ -201,8 +252,17 @@ static const float kArmWithinDeg = 2.0f;
 static const uint32_t kArmHoldMs = 1000;
 static const float kLoopDt = 0.005f;  // 200 Hz
 
+static bool g_telemetry = false;  // 't' toggles the angle stream (off: quiet)
+static control::PidGains g_angleGains = benchConfig().angle;
+
+static void printGains() {
+  conPrintf("# kp=%.1f ki=%.1f kd=%.2f deadband=%.0f%% trim=%.1f autotrim=%s\n",
+            g_angleGains.kp, g_angleGains.ki, g_angleGains.kd,
+            g_deadbandPct, g_trimDeg, g_autoTrim ? "on" : "off");
+}
+
 static void calibrateGyro() {
-  Serial.println("# calibrating gyro - keep the robot STILL...");
+  conPrintln("# calibrating gyro - keep the robot STILL...");
   float sum = 0.0f;
   int got = 0;
   for (int i = 0; i < 400; ++i) {  // ~2 s
@@ -211,7 +271,7 @@ static void calibrateGyro() {
     delay(5);
   }
   g_gyroBias = (got > 0) ? sum / got : 0.0f;
-  Serial.printf("# gyro bias: %.3f deg/s (%d samples)\n", g_gyroBias, got);
+  conPrintf("# gyro bias: %.3f deg/s (%d samples)\n", g_gyroBias, got);
 }
 
 void setup() {
@@ -222,54 +282,51 @@ void setup() {
   Serial.setTxTimeoutMs(0);
 #endif
   delay(300);
-  Serial.println("# BoomBot MCU1 - balance-only firmware");
+
+  WiFi.softAP(kApSsid, kApPass);
+  g_tcpServer.begin();
+  g_tcpServer.setNoDelay(true);
+
+  conPrintln("# BoomBot MCU1 - balance firmware (WiFi console)");
+  conPrintf("# WiFi AP '%s' pass '%s' -> nc %s 23\n", kApSsid, kApPass,
+            WiFi.softAPIP().toString().c_str());
 
   Wire.begin(pins::kI2c0Sda, pins::kI2c0Scl, 400000);
   motorsInit();
   motorsKill();
 
   if (!mpuInit()) {
-    // Without an IMU there is nothing safe to do: keep scanning and reporting
-    // so the wiring can be debugged live (rewire, watch, no reflash needed).
+    // Keep scanning and reporting so wiring can be fixed live, no reflash.
     while (true) {
-      Serial.println("# ERROR: no MPU at 0x68/0x69 on either pin orientation.");
+      conPrintln("# ERROR: no MPU at 0x68/0x69 on either pin orientation.");
       i2cScan(pins::kI2c0Sda, pins::kI2c0Scl);
       i2cScan(pins::kI2c0Scl, pins::kI2c0Sda);
-      Serial.println("# check: GY-521 power LED lit? VCC->3V3, GND->GND, SDA->11, SCL->10. retrying in 3 s...");
+      conPrintln("# check: GY-521 power LED lit? VCC->3V3, GND->GND, SDA->11, SCL->10. retrying in 3 s...");
+      pollTcpClient();
       delay(3000);
-      if (mpuInit()) break;  // recovered after rewiring
+      if (mpuInit()) break;
     }
-    Serial.println("# MPU recovered - continuing boot");
+    conPrintln("# MPU recovered - continuing boot");
   }
   calibrateGyro();
 
-  // Seed the filter from the accelerometer so it doesn't start at 0 by fiat.
   MpuSample s;
   if (mpuRead(s)) {
     g_filter.reset(kAngleSign * atan2f(s.ax, s.az) * RAD_TO_DEG);
   }
-  Serial.println("# hold upright to arm (|angle| < 2 deg for 1 s). 'd'=disarm 'a'=allow +/-=trim");
+  printGains();
+  conPrintln("# hold upright to arm (|angle| < 2 deg for 1 s)");
 }
 
-static bool g_telemetry = false;  // 't' toggles the angle stream (off: quiet)
-static control::PidGains g_angleGains = benchConfig().angle;
-
-static void printGains() {
-  Serial.printf("# kp=%.1f ki=%.1f kd=%.2f deadband=%.0f%% trim=%.1f\n",
-                g_angleGains.kp, g_angleGains.ki, g_angleGains.kd,
-                g_deadbandPct, g_trimDeg);
-}
-
-static void handleSerial() {
-  while (Serial.available()) {
-    const char c = Serial.read();
+static void handleConsole() {
+  for (int c = conRead(); c >= 0; c = conRead()) {
     bool gainsChanged = false;
-    if (c == 'd') { g_armAllowed = false; g_armed = false; motorsKill(); Serial.println("# DISARMED"); }
-    if (c == 'a') { g_armAllowed = true; Serial.println("# READY - hold upright to arm"); }
-    if (c == 't') { g_telemetry = !g_telemetry; Serial.println(g_telemetry ? "# telemetry ON" : "# telemetry OFF"); }
+    if (c == 'd') { g_armAllowed = false; g_armed = false; motorsKill(); conPrintln("# DISARMED"); }
+    if (c == 'a') { g_armAllowed = true; conPrintln("# READY - hold upright to arm"); }
+    if (c == 't') { g_telemetry = !g_telemetry; conPrintln(g_telemetry ? "# telemetry ON" : "# telemetry OFF"); }
     if (c == '+') { g_trimDeg += 0.5f; printGains(); }
     if (c == '-') { g_trimDeg -= 0.5f; printGains(); }
-    if (c == 'b') { g_autoTrim = !g_autoTrim; Serial.println(g_autoTrim ? "# auto-trim ON" : "# auto-trim OFF"); }
+    if (c == 'b') { g_autoTrim = !g_autoTrim; printGains(); }
     if (c == 'q') { g_angleGains.kp -= 1.0f; gainsChanged = true; }
     if (c == 'w') { g_angleGains.kp += 1.0f; gainsChanged = true; }
     if (c == 'e') { g_angleGains.kd -= 0.1f; gainsChanged = true; }
@@ -295,7 +352,8 @@ void loop() {
   if (static_cast<int32_t>(now - nextTickUs) < 0) return;
   nextTickUs += 5000;
 
-  handleSerial();
+  pollTcpClient();
+  handleConsole();
 
   MpuSample s;
   if (!mpuRead(s)) {  // I2C hiccup: safest is motors off until data returns
@@ -308,19 +366,18 @@ void loop() {
   const float angle = g_filter.update(accelAngle, rate, kLoopDt);
   const float theta = angle - g_trimDeg;
 
-  // Arming: require the robot held upright and steady.
   if (!g_armed) {
     motorsKill();
     const uint32_t ms = millis();
     if (g_armAllowed && fabsf(theta) < kArmWithinDeg) {
       if (g_uprightSinceMs == 0) {
         g_uprightSinceMs = ms;
-        Serial.println("# READY - hold steady...");
+        conPrintln("# READY - hold steady...");
       }
       if (ms - g_uprightSinceMs >= kArmHoldMs) {
         g_armed = true;
         g_ctrl.reset();
-        Serial.println("# ARMED - balancing");
+        conPrintln("# ARMED - balancing");
       }
     } else {
       g_uprightSinceMs = 0;
@@ -330,7 +387,7 @@ void loop() {
       g_armed = false;
       g_uprightSinceMs = 0;
       motorsKill();
-      Serial.println("# FALLEN - disarmed (stand upright to re-arm)");
+      conPrintln("# FALLEN - disarmed (stand upright to re-arm)");
     } else {
       // No encoders yet: measured velocity 0, target velocity 0 -> angle-only.
       const float motor = g_ctrl.update(theta, 0.0f, 0.0f, kLoopDt);
@@ -350,7 +407,7 @@ void loop() {
     const uint32_t ms = millis();
     if (ms - lastPrintMs >= 100) {
       lastPrintMs = ms;
-      Serial.printf("%.2f,%d\n", theta, g_armed ? 1 : 0);
+      conPrintf("%.2f,%d\n", theta, g_armed ? 1 : 0);
     }
   }
 }

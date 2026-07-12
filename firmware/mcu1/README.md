@@ -1,7 +1,20 @@
 # MCU 1 firmware — balance-only bring-up
 
-Minimal first firmware: **MPU-6050 + L298N only**. The robot stands up.
-No UART link, displays, ToF, or encoders yet — those come next.
+Minimal first firmware: **MPU-6050 + L298N + WiFi console**. The robot stands
+up. No UART link, displays, ToF, or encoders yet — those come next.
+
+## Wireless console (no USB cable needed)
+
+The board runs its own WiFi access point so the robot can drive untethered,
+powered from the power bank:
+
+1. Power the Lolin from the power bank (USB-A → its USB-C port).
+2. On a laptop/phone, join WiFi network **`BoomBot`**, password **`boombot123`**.
+3. Connect to the console: `nc 192.168.4.1 23` (macOS/Linux) or PuTTY →
+   host `192.168.4.1`, port `23`, connection type **Raw** (Windows).
+
+Same output and same keys as USB serial; both work at the same time. The
+newest TCP connection wins if you reconnect.
 
 ## Wiring needed for this test
 
