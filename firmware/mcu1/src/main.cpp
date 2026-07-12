@@ -167,7 +167,9 @@ static bool mpuRead(MpuSample& s) {
 }
 
 // ---- L298N ------------------------------------------------------------------
-static const int kPwmFreq = 20000;  // above audible
+// 5 kHz, not 20: the L298N's slow BJT switching eats a meaningful part of
+// each period at high PWM frequency, cutting effective motor voltage further.
+static const int kPwmFreq = 5000;
 static const int kPwmRes  = 10;     // 0..1023
 
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -268,6 +270,7 @@ static const uint32_t kArmHoldMs = 1000;
 static const float kLoopDt = 0.005f;  // 200 Hz
 
 static bool g_telemetry = false;  // 't' toggles the angle stream (off: quiet)
+static float g_lastMotor = 0.0f;  // last balance output, for telemetry
 static control::PidGains g_angleGains = benchConfig().angle;
 
 static void printGains() {
@@ -349,6 +352,20 @@ static void handleConsole() {
     if (c == 'z') { g_deadbandPct -= 2.0f; if (g_deadbandPct < 0) g_deadbandPct = 0; printGains(); }
     if (c == 'x') { g_deadbandPct += 2.0f; if (g_deadbandPct > 60) g_deadbandPct = 60; printGains(); }
     if (c == 'g') { printGains(); }
+    if (c == 'm') {
+      // Drive-train step test: discriminates electrical weakness from control
+      // problems. If full duty spins up slowly, no gain tuning can help.
+      if (g_armed) {
+        conPrintln("# step test refused while ARMED - press 'd' first");
+      } else {
+        conPrintln("# STEP TEST: full duty 0.6 s - WHEELS UP!");
+        control::WheelCommand full{100.0f, 100.0f};
+        motorsApply(full);
+        delay(600);
+        motorsKill();
+        conPrintln("# step test done (snappy strong spin-up = drive OK; sluggish = electrical)");
+      }
+    }
     if (gainsChanged) {
       if (g_angleGains.kp < 0) g_angleGains.kp = 0;
       if (g_angleGains.kd < 0) g_angleGains.kd = 0;
@@ -419,6 +436,7 @@ void loop() {
       const float motor =
           g_ctrl.update(theta, g_velEst.velocity(), 0.0f, kLoopDt);
       g_velEst.update(motor, kLoopDt);
+      g_lastMotor = motor;
       motorsApply(g_mixer.mix(motor, proto::Direction::Stop, 0));
 
       // Balance-point learner: persistent backward drive means the setpoint
@@ -432,12 +450,24 @@ void loop() {
     }
   }
 
-  // Quiet by default; 't' toggles a 10 Hz angle stream for gain tuning.
+  // Loop-rate accounting (real control frequency, not nominal).
+  static uint32_t loopCount = 0;
+  static uint32_t lastRateMs = 0;
+  static uint32_t loopHz = 0;
+  ++loopCount;
+  if (msNow - lastRateMs >= 1000) {
+    loopHz = loopCount * 1000 / (msNow - lastRateMs);
+    loopCount = 0;
+    lastRateMs = msNow;
+  }
+
+  // Quiet by default; 't' toggles a 10 Hz stream for tuning:
+  //   angle, last motor cmd, velocity estimate, actual loop Hz
   if (g_telemetry) {
-    const uint32_t ms = millis();
-    if (ms - lastPrintMs >= 100) {
-      lastPrintMs = ms;
-      conPrintf("%.2f,%d\n", theta, g_armed ? 1 : 0);
+    if (msNow - lastPrintMs >= 100) {
+      lastPrintMs = msNow;
+      conPrintf("%.2f,%.0f,%.2f,%u\n", theta, g_lastMotor,
+                g_velEst.velocity(), loopHz);
     }
   }
 }
