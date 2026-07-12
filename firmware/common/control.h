@@ -113,6 +113,12 @@ class BalanceController {
 
   void reset() { anglePid_.reset(); velPid_.reset(); }
 
+  // Live re-tuning of the inner (angle) loop, e.g. from a serial console.
+  void setAngleGains(const PidGains& g) {
+    cfg_.angle = g;
+    anglePid_.setGains(g);
+  }
+
   // theta: estimated tilt (deg). vel: measured base velocity (m/s).
   // targetVel: desired base velocity (m/s). Returns the common motor term.
   float update(float theta, float vel, float targetVel, float dt) {

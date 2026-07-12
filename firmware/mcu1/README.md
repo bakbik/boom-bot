@@ -57,6 +57,16 @@ in USB, then retry upload.
 | `t` | toggle the 10 Hz angle stream (off by default) |
 | `a` | re-allow arming |
 | `+` / `-` | shift the balance point by ±0.1° (find where it stands stillest) |
+| `q` / `w` | angle kp −1 / +1 (response strength) |
+| `e` / `r` | angle kd −0.1 / +0.1 (damping) |
+| `z` / `x` | motor deadband −2% / +2% (min duty where motors actually move) |
+| `g` | print current gains/deadband/trim |
+
+Live-tuning workflow: get it balancing (even badly), then adjust while it runs.
+Too weak/slow → `w` until it catches falls; buzzing/shaking → `e`,`r` to damp or
+`q` to back off kp; motors hum but don't move on small tilts → `x` to raise the
+deadband; jittery at rest → `z` to lower it. Note the values from `g` when it
+feels right and tell them to the project so they become the new defaults.
 
 Output is quiet by default — only state transitions print (READY / ARMED /
 FALLEN / DISARMED), because streaming over native-USB serial can stall the

@@ -138,12 +138,22 @@ static void motorsInit() {
   pwmWritePin(pins::kMotorEnRight, kPwmChanRight, 0);
 }
 
+// L298N+N20 deadband: below this duty (%) the motors don't move at all, so
+// every nonzero command is remapped into [deadband, 100]. Tune live: z/x keys.
+static float g_deadbandPct = 25.0f;
+
 // cmd in [-100, 100]; sign = direction, magnitude = duty.
 static void motorSet(int enPin, int chan, int inA, int inB, float cmd) {
   const bool fwd = cmd >= 0.0f;
   digitalWrite(inA, fwd ? HIGH : LOW);
   digitalWrite(inB, fwd ? LOW : HIGH);
-  const float mag = fabsf(cmd);
+  float mag = fabsf(cmd);
+  if (mag > 0.5f) {  // remap past the stiction deadband; tiny commands stay off
+    mag = g_deadbandPct + mag * (100.0f - g_deadbandPct) / 100.0f;
+    if (mag > 100.0f) mag = 100.0f;
+  } else {
+    mag = 0.0f;
+  }
   pwmWritePin(enPin, chan, static_cast<uint32_t>(mag * 1023.0f / 100.0f));
 }
 
@@ -160,9 +170,19 @@ static void motorsKill() {
 }
 
 // ---- state -------------------------------------------------------------------
+// Bench gains: hotter than the sim defaults because the real L298N+N20 drive
+// has far less authority than the simulated plant. Tune live: q/w e/r keys.
+static control::BalanceConfig benchConfig() {
+  control::BalanceConfig c = control::defaultBalanceConfig();
+  c.angle.kp = 18.0f;
+  c.angle.kd = 1.2f;
+  return c;
+}
+
 static control::ComplementaryFilter g_filter(0.98f);
-static control::BalanceController g_ctrl;   // defaultBalanceConfig()
+static control::BalanceController g_ctrl(benchConfig());
 static control::DriveMixer g_mixer;
+
 
 static float g_gyroBias = 0.0f;
 static float g_trimDeg = 0.0f;      // balance-point offset, tuned over serial
@@ -225,15 +245,36 @@ void setup() {
 }
 
 static bool g_telemetry = false;  // 't' toggles the angle stream (off: quiet)
+static control::PidGains g_angleGains = benchConfig().angle;
+
+static void printGains() {
+  Serial.printf("# kp=%.1f ki=%.1f kd=%.2f deadband=%.0f%% trim=%.1f\n",
+                g_angleGains.kp, g_angleGains.ki, g_angleGains.kd,
+                g_deadbandPct, g_trimDeg);
+}
 
 static void handleSerial() {
   while (Serial.available()) {
     const char c = Serial.read();
+    bool gainsChanged = false;
     if (c == 'd') { g_armAllowed = false; g_armed = false; motorsKill(); Serial.println("# DISARMED"); }
     if (c == 'a') { g_armAllowed = true; Serial.println("# READY - hold upright to arm"); }
     if (c == 't') { g_telemetry = !g_telemetry; Serial.println(g_telemetry ? "# telemetry ON" : "# telemetry OFF"); }
-    if (c == '+') { g_trimDeg += 0.1f; Serial.printf("# trim %.1f\n", g_trimDeg); }
-    if (c == '-') { g_trimDeg -= 0.1f; Serial.printf("# trim %.1f\n", g_trimDeg); }
+    if (c == '+') { g_trimDeg += 0.1f; printGains(); }
+    if (c == '-') { g_trimDeg -= 0.1f; printGains(); }
+    if (c == 'q') { g_angleGains.kp -= 1.0f; gainsChanged = true; }
+    if (c == 'w') { g_angleGains.kp += 1.0f; gainsChanged = true; }
+    if (c == 'e') { g_angleGains.kd -= 0.1f; gainsChanged = true; }
+    if (c == 'r') { g_angleGains.kd += 0.1f; gainsChanged = true; }
+    if (c == 'z') { g_deadbandPct -= 2.0f; if (g_deadbandPct < 0) g_deadbandPct = 0; printGains(); }
+    if (c == 'x') { g_deadbandPct += 2.0f; if (g_deadbandPct > 60) g_deadbandPct = 60; printGains(); }
+    if (c == 'g') { printGains(); }
+    if (gainsChanged) {
+      if (g_angleGains.kp < 0) g_angleGains.kp = 0;
+      if (g_angleGains.kd < 0) g_angleGains.kd = 0;
+      g_ctrl.setAngleGains(g_angleGains);
+      printGains();
+    }
   }
 }
 
