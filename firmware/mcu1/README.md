@@ -54,6 +54,7 @@ in USB, then retry upload.
 | Key | Action |
 |-----|--------|
 | `d` | disarm immediately (motors off) |
+| `t` | toggle the 10 Hz angle stream (off by default) |
 | `a` | re-allow arming |
 | `+` / `-` | shift the balance point by ±0.1° (find where it stands stillest) |
 

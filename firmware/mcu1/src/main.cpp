@@ -189,6 +189,11 @@ static void calibrateGyro() {
 
 void setup() {
   Serial.begin(115200);
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
+  // Native-USB serial blocks when the host isn't draining the buffer, which
+  // would stall the 200 Hz balance loop. Drop bytes instead of waiting.
+  Serial.setTxTimeoutMs(0);
+#endif
   delay(300);
   Serial.println("# BoomBot MCU1 - balance-only firmware");
 
@@ -219,11 +224,14 @@ void setup() {
   Serial.println("# hold upright to arm (|angle| < 2 deg for 1 s). 'd'=disarm 'a'=allow +/-=trim");
 }
 
+static bool g_telemetry = false;  // 't' toggles the angle stream (off: quiet)
+
 static void handleSerial() {
   while (Serial.available()) {
     const char c = Serial.read();
     if (c == 'd') { g_armAllowed = false; g_armed = false; motorsKill(); Serial.println("# DISARMED"); }
-    if (c == 'a') { g_armAllowed = true; Serial.println("# arming allowed"); }
+    if (c == 'a') { g_armAllowed = true; Serial.println("# READY - hold upright to arm"); }
+    if (c == 't') { g_telemetry = !g_telemetry; Serial.println(g_telemetry ? "# telemetry ON" : "# telemetry OFF"); }
     if (c == '+') { g_trimDeg += 0.1f; Serial.printf("# trim %.1f\n", g_trimDeg); }
     if (c == '-') { g_trimDeg -= 0.1f; Serial.printf("# trim %.1f\n", g_trimDeg); }
   }
@@ -256,7 +264,10 @@ void loop() {
     motorsKill();
     const uint32_t ms = millis();
     if (g_armAllowed && fabsf(theta) < kArmWithinDeg) {
-      if (g_uprightSinceMs == 0) g_uprightSinceMs = ms;
+      if (g_uprightSinceMs == 0) {
+        g_uprightSinceMs = ms;
+        Serial.println("# READY - hold steady...");
+      }
       if (ms - g_uprightSinceMs >= kArmHoldMs) {
         g_armed = true;
         g_ctrl.reset();
@@ -278,10 +289,12 @@ void loop() {
     }
   }
 
-  // 20 Hz CSV telemetry: angle,armed (view with the Arduino serial plotter).
-  const uint32_t ms = millis();
-  if (ms - lastPrintMs >= 50) {
-    lastPrintMs = ms;
-    Serial.printf("%.2f,%d\n", theta, g_armed ? 1 : 0);
+  // Quiet by default; 't' toggles a 10 Hz angle stream for gain tuning.
+  if (g_telemetry) {
+    const uint32_t ms = millis();
+    if (ms - lastPrintMs >= 100) {
+      lastPrintMs = ms;
+      Serial.printf("%.2f,%d\n", theta, g_armed ? 1 : 0);
+    }
   }
 }
