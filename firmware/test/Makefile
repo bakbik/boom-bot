@@ -23,4 +23,10 @@ render_gestures: render_gestures.cpp ../common/gestures.h ../common/protocol.h
 	$(CXX) $(CXXFLAGS) -o $@ render_gestures.cpp
 
 clean:
-	rm -f test_protocol test_control render_gestures gestures.svg
+	rm -f test_protocol test_control render_gestures gestures.svg tune_gains
+
+tune: tune_gains
+	./tune_gains
+
+tune_gains: tune_gains.cpp ../common/control.h
+	$(CXX) $(CXXFLAGS) -O2 -o $@ tune_gains.cpp

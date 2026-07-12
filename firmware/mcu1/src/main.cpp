@@ -227,19 +227,26 @@ static void motorsKill() {
 }
 
 // ---- state -------------------------------------------------------------------
-// Bench gains (2026-07-12 session): kp=20 ki=5 chosen on hardware; kd kept
-// moderate — high kd amplifies sensor noise into motor thrash.
+// Gains from firmware/test/tune_gains.cpp against the measured plant (CAD mass
+// 581 g, J=1.38e-3; L298N-limited drive). Key finding: without velocity
+// feedback this plant is UNSTABLE at any gains — the pseudo-velocity estimator
+// below is what makes it balanceable, not the gain values.
 static control::BalanceConfig benchConfig() {
   control::BalanceConfig c = control::defaultBalanceConfig();
-  c.angle.kp = 20.0f;
-  c.angle.ki = 5.0f;
-  c.angle.kd = 1.2f;
+  c.angle.kp = 38.0f;
+  c.angle.ki = 10.0f;
+  c.angle.kd = 0.75f;
   return c;
 }
 
 static control::ComplementaryFilter g_filter(0.98f);
 static control::BalanceController g_ctrl(benchConfig());
 static control::DriveMixer g_mixer;
+
+// Encoder-less wheel-velocity estimate from the motor command (see control.h).
+// Nominal constants for the L298N-at-5V + N20 + 581 g robot.
+static control::VelocityEstimator g_velEst(
+    control::VelocityEstimatorConfig{4.65f, 0.5f, 0.8f});
 
 static float g_gyroBias = 0.0f;
 static float g_trimDeg = -8.0f;     // bench-measured starting balance point
@@ -393,6 +400,7 @@ void loop() {
       if (ms - g_uprightSinceMs >= kArmHoldMs) {
         g_armed = true;
         g_ctrl.reset();
+        g_velEst.reset();
         conPrintln("# ARMED - balancing");
       }
     } else {
@@ -405,8 +413,11 @@ void loop() {
       motorsKill();
       conPrintln("# FALLEN - disarmed (stand upright to re-arm)");
     } else {
-      // No encoders yet: measured velocity 0, target velocity 0 -> angle-only.
-      const float motor = g_ctrl.update(theta, 0.0f, 0.0f, kLoopDt);
+      // No encoders yet: pseudo-velocity from the motor model closes the
+      // outer loop — without it this drive cannot stabilize the robot.
+      const float motor =
+          g_ctrl.update(theta, g_velEst.velocity(), 0.0f, kLoopDt);
+      g_velEst.update(motor, kLoopDt);
       motorsApply(g_mixer.mix(motor, proto::Direction::Stop, 0));
 
       // Balance-point learner: persistent backward drive means the setpoint

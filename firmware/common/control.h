@@ -137,6 +137,38 @@ class BalanceController {
   Pid velPid_;
 };
 
+// Pseudo-velocity estimator for encoder-less operation: integrates a simple
+// DC-motor model (stall force minus back-EMF falloff, viscous friction) driven
+// by the commanded duty. Crude but enough for the balance outer loop until
+// real encoders arrive — without any velocity feedback an L298N-class drive
+// cannot stabilize this robot (it accelerates into wheel-speed saturation).
+struct VelocityEstimatorConfig {
+  float stallAccel;  // m/s^2 at full duty, standstill (stall force / mass)
+  float vmax;        // m/s no-load top speed
+  float friction;    // 1/s viscous decay
+};
+
+class VelocityEstimator {
+ public:
+  explicit VelocityEstimator(const VelocityEstimatorConfig& c) : cfg_(c) {}
+
+  // motor: -100..100 command actually sent to the wheels.
+  float update(float motor, float dt) {
+    const float duty = clampf(motor / 100.0f, -1.0f, 1.0f);
+    float accel = cfg_.stallAccel * (duty - v_ / cfg_.vmax);
+    accel = clampf(accel, -cfg_.stallAccel, cfg_.stallAccel);
+    v_ += (accel - cfg_.friction * v_) * dt;
+    return v_;
+  }
+
+  float velocity() const { return v_; }
+  void reset() { v_ = 0.0f; }
+
+ private:
+  VelocityEstimatorConfig cfg_;
+  float v_ = 0.0f;
+};
+
 // Per-wheel motor commands, each in [-100, 100].
 struct WheelCommand { float left, right; };
 
