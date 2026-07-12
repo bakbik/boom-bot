@@ -24,8 +24,8 @@ constexpr int kMotorIn3      = 12;  // IN3 — right motor direction A
 constexpr int kMotorIn4      = 13;  // IN4 — right motor direction B
 
 // ---- I2C bus 0: MPU-6050 + 2x VL53L0X + left AS5600 -----------------------
-constexpr int kI2c0Sda = 10;
-constexpr int kI2c0Scl = 11;
+constexpr int kI2c0Sda = 11;
+constexpr int kI2c0Scl = 10;
 // VL53L0X XSHUT lines (hold one in reset at boot to re-address the other).
 constexpr int kTofXshutLeft  = 41;
 constexpr int kTofXshutRight = 42;

@@ -203,7 +203,7 @@ void setup() {
       Serial.println("# ERROR: no MPU at 0x68/0x69 on either pin orientation.");
       i2cScan(pins::kI2c0Sda, pins::kI2c0Scl);
       i2cScan(pins::kI2c0Scl, pins::kI2c0Sda);
-      Serial.println("# check: GY-521 power LED lit? VCC->3V3, GND->GND, SDA->10, SCL->11. retrying in 3 s...");
+      Serial.println("# check: GY-521 power LED lit? VCC->3V3, GND->GND, SDA->11, SCL->10. retrying in 3 s...");
       delay(3000);
       if (mpuInit()) break;  // recovered after rewiring
     }
