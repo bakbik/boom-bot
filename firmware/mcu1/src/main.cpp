@@ -159,7 +159,7 @@ void setup() {
   if (!mpuInit()) {
     // Without an IMU there is nothing safe to do: report and halt.
     while (true) {
-      Serial.println("# ERROR: MPU-6050 not found at 0x68 - check SDA=11 SCL=10 wiring");
+      Serial.println("# ERROR: MPU-6050 not found at 0x68 - check SDA=10 SCL=11 wiring");
       delay(1000);
     }
   }
