@@ -39,7 +39,14 @@ static WiFiClient g_tcpClient;
 
 static void conWrite(const char* s) {
   Serial.print(s);
-  if (g_tcpClient && g_tcpClient.connected()) g_tcpClient.print(s);
+  if (g_tcpClient && g_tcpClient.connected()) {
+    // Never block the balance loop on a slow/stale TCP connection: write only
+    // what the socket can take right now, drop the rest.
+    const size_t n = strlen(s);
+    if (static_cast<size_t>(g_tcpClient.availableForWrite()) >= n) {
+      g_tcpClient.write(reinterpret_cast<const uint8_t*>(s), n);
+    }
+  }
 }
 
 static void conPrintln(const char* s) {
@@ -351,8 +358,17 @@ void loop() {
   const uint32_t now = micros();
   if (static_cast<int32_t>(now - nextTickUs) < 0) return;
   nextTickUs += 5000;
+  // If something stalled us (WiFi event, TCP hiccup), resync instead of
+  // replaying the missed ticks back-to-back with a wrong dt.
+  if (static_cast<int32_t>(now - nextTickUs) > 50000) nextTickUs = now + 5000;
 
-  pollTcpClient();
+  // Network housekeeping is not worth doing 200x per second.
+  static uint32_t lastNetMs = 0;
+  const uint32_t msNow = millis();
+  if (msNow - lastNetMs >= 100) {
+    lastNetMs = msNow;
+    pollTcpClient();
+  }
   handleConsole();
 
   MpuSample s;
@@ -394,8 +410,10 @@ void loop() {
       motorsApply(g_mixer.mix(motor, proto::Direction::Stop, 0));
 
       // Balance-point learner: persistent backward drive means the setpoint
-      // is behind the true equilibrium (raise trim), and vice versa.
-      if (g_autoTrim) {
+      // is behind the true equilibrium (raise trim), and vice versa. Learn
+      // only near equilibrium — adapting during a big transient (push, catch,
+      // pickup) erodes a good trim with garbage.
+      if (g_autoTrim && fabsf(theta) < 10.0f && fabsf(rate) < 60.0f) {
         g_trimDeg -= kAutoTrimRate * motor * kLoopDt;
         g_trimDeg = control::clampf(g_trimDeg, -kTrimLimitDeg, kTrimLimitDeg);
       }
