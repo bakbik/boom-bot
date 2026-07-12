@@ -3,8 +3,17 @@
 Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 — keep the two in sync. Diagram: [`wiring-diagram.svg`](wiring-diagram.svg).
 
-> **Board assumption:** full-size Wemos LOLIN S3 (16 MB flash / 8 MB octal
-> PSRAM). The GPIO numbers below avoid every ESP32-S3 chip-reserved pin
+> **⚠ Board identification (2026-07-12):** the first flash's boot log showed
+> **4 MB flash, no OPI PSRAM** — the actual board is a **LOLIN S3 Mini**, not
+> the full-size LOLIN S3. Everything the balance firmware uses (GPIO 1–18, 21)
+> is fine, but the S3 Mini does **not** expose GPIO 39–42 (display SCLK,
+> right-eye CS, both ToF XSHUT) and its onboard RGB LED sits on GPIO47 (a
+> "spare" below). Those five assignments must be remapped onto Mini-exposed
+> pins (e.g. 33–38, 43/44 if console is freed) before the display/ToF wiring
+> happens — pending confirmation of the exact board.
+>
+> **Original board assumption:** full-size Wemos LOLIN S3 (16 MB flash / 8 MB
+> octal PSRAM). The GPIO numbers below avoid every ESP32-S3 chip-reserved pin
 > (strapping 0/3/45/46, USB 19/20, flash 26–32, octal PSRAM 33–37, console
 > 43/44) and the Lolin's onboard RGB LED (38), so they are safe on any S3
 > board that exposes them. If your board revision doesn't expose one of these
