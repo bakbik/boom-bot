@@ -26,18 +26,58 @@ static const float kGyroSign  = 1.0f;   // flip if angle drifts when rotating
 static const float kMotorSign = 1.0f;   // flip if robot drives away from the fall
 
 // ---- MPU-6050 (raw I2C, no library) ----------------------------------------
-static const uint8_t kMpuAddr = 0x68;
+static uint8_t g_mpuAddr = 0x68;  // discovered at boot (0x68 or 0x69)
 
 static void mpuWrite(uint8_t reg, uint8_t val) {
-  Wire.beginTransmission(kMpuAddr);
+  Wire.beginTransmission(g_mpuAddr);
   Wire.write(reg);
   Wire.write(val);
   Wire.endTransmission();
 }
 
+static bool i2cPing(uint8_t addr) {
+  Wire.beginTransmission(addr);
+  return Wire.endTransmission() == 0;
+}
+
+// Scan the whole bus and print every responding address.
+static int i2cScan(int sda, int scl) {
+  Wire.end();
+  Wire.begin(sda, scl, 400000);
+  delay(20);
+  int found = 0;
+  Serial.printf("# scan SDA=%d SCL=%d:", sda, scl);
+  for (uint8_t a = 1; a < 127; ++a) {
+    if (i2cPing(a)) { Serial.printf(" 0x%02X", a); ++found; }
+  }
+  Serial.println(found ? "" : " (nothing - check VCC/GND/wires)");
+  return found;
+}
+
+// Try both pin orientations and both MPU addresses; adopt whatever answers.
+static bool mpuProbe() {
+  const int orient[2][2] = {{pins::kI2c0Sda, pins::kI2c0Scl},
+                            {pins::kI2c0Scl, pins::kI2c0Sda}};
+  for (int o = 0; o < 2; ++o) {
+    Wire.end();
+    Wire.begin(orient[o][0], orient[o][1], 400000);
+    delay(20);
+    for (uint8_t addr = 0x68; addr <= 0x69; ++addr) {
+      if (i2cPing(addr)) {
+        g_mpuAddr = addr;
+        Serial.printf("# MPU found: addr 0x%02X, SDA=%d SCL=%d%s\n",
+                      addr, orient[o][0], orient[o][1],
+                      o == 1 ? "  (PINS SWAPPED vs pins.h - fix wiring or pins.h)"
+                             : "");
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 static bool mpuInit() {
-  Wire.beginTransmission(kMpuAddr);
-  if (Wire.endTransmission() != 0) return false;  // not responding
+  if (!mpuProbe()) return false;
   mpuWrite(0x6B, 0x01);  // PWR_MGMT_1: wake, clock = gyro X PLL
   mpuWrite(0x1A, 0x03);  // CONFIG: DLPF 44 Hz accel / 42 Hz gyro
   mpuWrite(0x1B, 0x08);  // GYRO_CONFIG: +/-500 dps  (65.5 LSB per dps)
@@ -51,10 +91,10 @@ struct MpuSample {
 };
 
 static bool mpuRead(MpuSample& s) {
-  Wire.beginTransmission(kMpuAddr);
+  Wire.beginTransmission(g_mpuAddr);
   Wire.write(0x3B);  // ACCEL_XOUT_H
   if (Wire.endTransmission(false) != 0) return false;
-  if (Wire.requestFrom(static_cast<int>(kMpuAddr), 14) != 14) return false;
+  if (Wire.requestFrom(static_cast<int>(g_mpuAddr), 14) != 14) return false;
   int16_t raw[7];
   for (int i = 0; i < 7; ++i) {
     raw[i] = (Wire.read() << 8) | Wire.read();
@@ -157,11 +197,17 @@ void setup() {
   motorsKill();
 
   if (!mpuInit()) {
-    // Without an IMU there is nothing safe to do: report and halt.
+    // Without an IMU there is nothing safe to do: keep scanning and reporting
+    // so the wiring can be debugged live (rewire, watch, no reflash needed).
     while (true) {
-      Serial.println("# ERROR: MPU-6050 not found at 0x68 - check SDA=10 SCL=11 wiring");
-      delay(1000);
+      Serial.println("# ERROR: no MPU at 0x68/0x69 on either pin orientation.");
+      i2cScan(pins::kI2c0Sda, pins::kI2c0Scl);
+      i2cScan(pins::kI2c0Scl, pins::kI2c0Sda);
+      Serial.println("# check: GY-521 power LED lit? VCC->3V3, GND->GND, SDA->10, SCL->11. retrying in 3 s...");
+      delay(3000);
+      if (mpuInit()) break;  // recovered after rewiring
     }
+    Serial.println("# MPU recovered - continuing boot");
   }
   calibrateGyro();
 
