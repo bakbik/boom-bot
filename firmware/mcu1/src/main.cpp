@@ -227,15 +227,16 @@ static void motorsKill() {
 }
 
 // ---- state -------------------------------------------------------------------
-// Gains from firmware/test/tune_gains.cpp against the measured plant (CAD mass
-// 581 g, J=1.38e-3; L298N-limited drive). Key finding: without velocity
-// feedback this plant is UNSTABLE at any gains — the pseudo-velocity estimator
-// below is what makes it balanceable, not the gain values.
+// Gains from firmware/test/tune_gains.cpp against the measured plant (CAD:
+// m=581 g, J_pitch=1.38e-3 kg*m^2, axle->CoM 30 mm, 65 mm wheels; L298N-
+// limited drive). Key finding: without velocity feedback this plant is
+// UNSTABLE at any gains — the pseudo-velocity estimator below is what makes
+// it balanceable, not the gain values.
 static control::BalanceConfig benchConfig() {
   control::BalanceConfig c = control::defaultBalanceConfig();
   c.angle.kp = 38.0f;
   c.angle.ki = 10.0f;
-  c.angle.kd = 0.75f;
+  c.angle.kd = 0.5f;
   return c;
 }
 

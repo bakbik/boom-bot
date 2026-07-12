@@ -1,5 +1,16 @@
 # Chassis Design — Control-Relevant Dimensions (M2 input)
 
+> **As built (CAD-measured, 2026-07-12):** mass **581 g**, pitch inertia about
+> the CoM **1.38×10⁻³ kg·m²**, axle→CoM **L ≈ 30 mm**, wheels **65 mm**
+> (confirmed). Balance-point trim settled at ≈ −8°, which at L = 30 mm means
+> the CoM sits only ~4 mm off the axle horizontally — no urgent battery move.
+> Although L is far below the 80–120 mm target below, the fall timescale is
+> still comfortable: the large inertia relative to m·L² gives an *effective*
+> pendulum length J_pivot/(m·L) ≈ 109 mm, so τ ≈ 0.10 s (≈20 control cycles).
+> Gains for this exact plant: `make -C firmware/test tune`. Key result: with
+> the L298N-limited drive the robot is **only stabilizable with velocity
+> feedback** (pseudo-velocity estimator now; AS5600 encoders properly).
+
 This is the bridge between the balance/drive controller (`firmware/common/control.h`,
 verified in `firmware/test/test_control.cpp`) and the physical chassis. The
 controller was tuned in simulation against an assumed geometry; the closer the

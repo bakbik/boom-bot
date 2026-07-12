@@ -5,7 +5,7 @@
 //   mass        580.57 g            (CAD mass properties, Assem1)
 //   J_pitch     1.379e-3 kg*m^2     (CAD principal moment about the axle axis)
 //   wheel r     32.5 mm             (65 mm wheels, BOM)
-//   L           90 mm assumed       (axle->CoM; TODO replace with CAD measure)
+//   L           30 mm               (axle->CoM, CAD-verified)
 //   drive       L298N at 5 V rail: ~3 V effective at the motors ->
 //               ~0.045 N*m stall per motor, ~0.5 m/s no-load base speed
 //
@@ -25,7 +25,7 @@ struct RealPlant {
   // Measured constants
   static constexpr double kMass = 0.58057;    // kg
   static constexpr double kJc = 1.379e-3;     // kg*m^2 about CoM, pitch axis
-  static constexpr double kL = 0.090;         // m, axle->CoM (assumed)
+  static constexpr double kL = 0.030;         // m, axle->CoM (CAD-verified 2026-07-12)
   static constexpr double kR = 0.0325;        // m wheel radius
   static constexpr double kG = 9.81;
   // L298N-limited drive: two N20s, ~3 V effective of a 6 V/0.09 N*m-ish spec
@@ -114,7 +114,7 @@ Score evaluate(const PidGains& g, double initialTiltDeg, double durS) {
 }  // namespace
 
 int main() {
-  std::printf("# tuning against measured plant: m=%.0f g, Jc=%.2e, L=%.0f mm (assumed), "
+  std::printf("# tuning against measured plant: m=%.0f g, Jc=%.2e, L=%.0f mm, "
               "stall force=%.1f N, vmax=%.1f m/s\n",
               RealPlant::kMass * 1000, RealPlant::kJc, RealPlant::kL * 1000,
               RealPlant::kStallForce, RealPlant::kVmax);
