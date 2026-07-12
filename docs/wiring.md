@@ -94,10 +94,10 @@ Machine-readable version: [`firmware/common/pins.h`](../firmware/common/pins.h)
 | 5 | out (PWM) | L298N ENA | left motor speed |
 | 6 | out | L298N IN1 | left motor dir |
 | 7 | out | L298N IN2 | left motor dir |
-| 8 | I/O | MPU-6050 + 2× VL53L0X + AS5600 (left) SDA | I2C0 data |
-| 9 | out | same devices, SCL | I2C0 clock |
-| 10 | out | GC9A01 left CS | display select L |
-| 11 | out | both GC9A01 SDA/MOSI | SPI data (shared) |
+| 8 | out | both GC9A01 SDA/MOSI | SPI data (shared) |
+| 9 | out | GC9A01 left CS | display select L |
+| 10 | out | MPU-6050 + 2× VL53L0X + AS5600 (left) SCL | I2C0 clock |
+| 11 | I/O | same devices, SDA | I2C0 data |
 | 12 | out | L298N IN3 | right motor dir |
 | 13 | out | L298N IN4 | right motor dir |
 | 14 | out | both GC9A01 DC | data/command (shared) |
@@ -120,7 +120,7 @@ split across the two I2C controllers.
 
 | Bus | Pins | Device | Address |
 |-----|------|--------|---------|
-| I2C0 | SDA 8 / SCL 9 | MPU-6050 | 0x68 |
+| I2C0 | SDA 11 / SCL 10 | MPU-6050 | 0x68 |
 | I2C0 | | VL53L0X left | 0x30 (re-addressed at boot via XSHUT 41) |
 | I2C0 | | VL53L0X right | 0x29 (default; held in reset via XSHUT 42 while left is re-addressed) |
 | I2C0 | | AS5600 left | 0x36 |
@@ -131,8 +131,8 @@ re-address it to 0x30 → release right (42), which comes up at the default 0x29
 
 ## Display SPI plan
 
-Both GC9A01s share MOSI (11), SCLK (40), DC (14), RST (21); only CS differs
-(10 = left eye, 39 = right eye). BLK (backlight) tied to 3V3. When the
+Both GC9A01s share MOSI (8), SCLK (40), DC (14), RST (21); only CS differs
+(9 = left eye, 39 = right eye). BLK (backlight) tied to 3V3. When the
 lower-face "mouth" display is added later it joins the same bus with a spare
 GPIO (16/47/48) as its CS.
 
@@ -149,8 +149,8 @@ stay unconnected (NC).
 |-----|---------|-----------|
 | VCC | power | 3V3 |
 | GND | ground | GND |
-| SCL | I2C clock | GPIO9 |
-| SDA | I2C data | GPIO8 |
+| SCL | I2C clock | GPIO10 |
+| SDA | I2C data | GPIO11 |
 | XDA | aux-I2C data (for an external magnetometer slaved to the MPU) | NC |
 | XCL | aux-I2C clock | NC |
 | AD0 | address select: low = 0x68, high = 0x69 | NC (onboard pull-down → 0x68) |
@@ -162,8 +162,8 @@ stay unconnected (NC).
 |-----|---------|-----------|
 | VIN | power | 3V3 |
 | GND | ground | GND |
-| SCL | I2C clock | GPIO9 |
-| SDA | I2C data | GPIO8 |
+| SCL | I2C clock | GPIO10 |
+| SDA | I2C data | GPIO11 |
 | XSHUT | shutdown/reset — used to re-address at boot | left: GPIO41, right: GPIO42 |
 | GPIO1 | measurement-ready interrupt | NC (polled) |
 
@@ -173,8 +173,8 @@ stay unconnected (NC).
 |-----|---------|-----------|
 | VCC | power | 3V3 |
 | GND | ground | GND |
-| SCL | I2C clock | left: GPIO9 · right: GPIO2 |
-| SDA | I2C data | left: GPIO8 · right: GPIO1 |
+| SCL | I2C clock | left: GPIO10 · right: GPIO2 |
+| SDA | I2C data | left: GPIO11 · right: GPIO1 |
 | DIR | rotation direction sense | **tie to GND** (do not float — defines CW = increasing angle) |
 | OUT | analog/PWM angle output | NC (we read over I2C) |
 | GPO | programmable output (if present) | NC |
@@ -186,9 +186,9 @@ stay unconnected (NC).
 | VCC | power | 3V3 |
 | GND | ground | GND |
 | SCL/CLK | SPI clock | GPIO40 (shared) |
-| SDA/DIN | SPI data | GPIO11 (shared) |
+| SDA/DIN | SPI data | GPIO8 (shared) |
 | DC | data/command | GPIO14 (shared) |
-| CS | chip select | left: GPIO10 · right: GPIO39 |
+| CS | chip select | left: GPIO9 · right: GPIO39 |
 | RST | reset | GPIO21 (shared) |
 | BLK | backlight enable | 3V3 (always on; a spare GPIO later for dimming) |
 

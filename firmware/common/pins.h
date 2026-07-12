@@ -24,8 +24,8 @@ constexpr int kMotorIn3      = 12;  // IN3 — right motor direction A
 constexpr int kMotorIn4      = 13;  // IN4 — right motor direction B
 
 // ---- I2C bus 0: MPU-6050 + 2x VL53L0X + left AS5600 -----------------------
-constexpr int kI2c0Sda = 8;
-constexpr int kI2c0Scl = 9;
+constexpr int kI2c0Sda = 11;
+constexpr int kI2c0Scl = 10;
 // VL53L0X XSHUT lines (hold one in reset at boot to re-address the other).
 constexpr int kTofXshutLeft  = 41;
 constexpr int kTofXshutRight = 42;
@@ -36,9 +36,9 @@ constexpr int kI2c1Sda = 1;
 constexpr int kI2c1Scl = 2;
 
 // ---- SPI: 2x GC9A01 round displays (shared bus, separate CS) --------------
-constexpr int kDispMosi   = 11;  // shared SDA/MOSI
+constexpr int kDispMosi   = 8;   // shared SDA/MOSI
 constexpr int kDispSclk   = 40;  // shared SCL/SCLK
-constexpr int kDispCsLeft  = 10;
+constexpr int kDispCsLeft  = 9;
 constexpr int kDispCsRight = 39;
 constexpr int kDispDc     = 14;  // shared data/command
 constexpr int kDispRst    = 21;  // shared reset
