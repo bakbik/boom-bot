@@ -446,13 +446,18 @@ void loop() {
 
   if (g_standup != StandupPhase::Idle) {
     if (g_standupStartMs == 0) {
-      // First tick: validate posture and pick the kick direction.
+      // First tick: validate posture and pick the kick direction. Attempts
+      // beyond ~70 deg are allowed for demonstration - the sim says the
+      // wheels are traction-limited there and it will fail.
       const float a = fabsf(theta);
-      if (a < 30.0f || a > 75.0f) {
+      if (a < 30.0f) {
         g_standup = StandupPhase::Idle;
         motorsKill();
-        conPrintf("# stand-up refused: angle %.0f deg not in 30..75 (needs the tail rest)\n", theta);
+        conPrintf("# stand-up refused: angle %.0f deg - already nearly upright\n", theta);
       } else {
+        if (a > 70.0f) {
+          conPrintf("# attempting from %.0f deg - physics says traction-limited, expect failure\n", theta);
+        }
         g_standupDir = theta > 0 ? 1.0f : -1.0f;
         g_standupStartMs = msNow;
       }
