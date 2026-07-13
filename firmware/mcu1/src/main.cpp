@@ -275,9 +275,10 @@ static float g_lastMotor = 0.0f;  // last balance output, for telemetry
 static control::PidGains g_angleGains = benchConfig().angle;
 
 static void printGains() {
-  conPrintf("# kp=%.1f ki=%.1f kd=%.2f deadband=%.0f%% trim=%.1f autotrim=%s\n",
+  conPrintf("# kp=%.1f ki=%.1f kd=%.2f deadband=%.0f%% trim=%.1f autotrim=%s wifi_clients=%d\n",
             g_angleGains.kp, g_angleGains.ki, g_angleGains.kd,
-            g_deadbandPct, g_trimDeg, g_autoTrim ? "on" : "off");
+            g_deadbandPct, g_trimDeg, g_autoTrim ? "on" : "off",
+            WiFi.softAPgetStationNum());
 }
 
 static void calibrateGyro() {
@@ -302,13 +303,16 @@ void setup() {
 #endif
   delay(300);
 
-  WiFi.softAP(kApSsid, kApPass);
+  WiFi.mode(WIFI_AP);
+  const bool apOk = WiFi.softAP(kApSsid, kApPass, /*channel=*/1,
+                                /*hidden=*/0, /*max_conn=*/4);
   g_tcpServer.begin();
   g_tcpServer.setNoDelay(true);
 
   conPrintln("# BoomBot MCU1 - balance firmware (WiFi console)");
-  conPrintf("# WiFi AP '%s' pass '%s' -> nc %s 23\n", kApSsid, kApPass,
-            WiFi.softAPIP().toString().c_str());
+  conPrintf("# WiFi AP '%s' pass '%s' -> raw TCP %s:23 (PuTTY raw / nc)  [AP start: %s]\n",
+            kApSsid, kApPass, WiFi.softAPIP().toString().c_str(),
+            apOk ? "OK" : "FAILED");
 
   Wire.begin(pins::kI2c0Sda, pins::kI2c0Scl, 400000);
   motorsInit();
