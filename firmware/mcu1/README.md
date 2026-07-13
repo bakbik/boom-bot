@@ -75,6 +75,8 @@ in USB, then retry upload.
 | `e` / `r` | angle kd −0.1 / +0.1 (damping) |
 | `z` / `x` | motor deadband −2% / +2% (min duty where motors actually move) |
 | `g` | print current gains/deadband/trim |
+| `u` | stand-up maneuver from a tail-propped rest (30–75°): reverse kick, slam, catch |
+| `[` / `]` | kick reverse-phase −25 ms / +25 ms (default 150 ms) |
 
 Live-tuning workflow: get it balancing (even badly), then adjust while it runs.
 Too weak/slow → `w` until it catches falls; buzzing/shaking → `e`,`r` to damp or
