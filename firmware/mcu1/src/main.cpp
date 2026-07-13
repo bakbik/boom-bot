@@ -248,9 +248,10 @@ static control::BalanceController g_ctrl(benchConfig());
 static control::DriveMixer g_mixer;
 
 // Encoder-less wheel-velocity estimate from the motor command (see control.h).
-// Nominal constants for the 2S-fed L298N (~5 V at the motors) + 581 g robot.
+// Nominal constants for the 2S-fed L298N (~5 V at the motors) + 687 g robot
+// (mass incl. the onboard 2S pack, CAD 2026-07-12).
 static control::VelocityEstimator g_velEst(
-    control::VelocityEstimatorConfig{8.95f, 0.95f, 0.8f});
+    control::VelocityEstimatorConfig{7.57f, 0.95f, 0.8f});
 
 static float g_gyroBias = 0.0f;
 static float g_trimDeg = -8.0f;     // bench-measured starting balance point

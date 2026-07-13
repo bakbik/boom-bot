@@ -2,10 +2,10 @@
 //   make -C firmware/test tune     # grid-searches PID gains, prints the best
 //
 // Plant parameters come from measurements, not guesses:
-//   mass        580.57 g            (CAD mass properties, Assem1)
-//   J_pitch     1.379e-3 kg*m^2     (CAD principal moment about the axle axis)
+//   mass        687.01 g            (CAD mass properties incl. 2S pack)
+//   J_pitch     2.065e-3 kg*m^2     (CAD, about the axle axis, incl. pack)
 //   wheel r     32.5 mm             (65 mm wheels, BOM)
-//   L           30 mm               (axle->CoM, CAD-verified)
+//   L           42 mm               (axle->CoM, CAD w/ pack)
 //   drive       L298N fed from a 2S pack (7.4 V): ~5 V at the motors ->
 //               ~0.085 N*m stall per motor, ~0.95 m/s no-load base speed
 //
@@ -23,9 +23,9 @@ namespace {
 
 struct RealPlant {
   // Measured constants
-  static constexpr double kMass = 0.58057;    // kg
-  static constexpr double kJc = 1.379e-3;     // kg*m^2 about CoM, pitch axis
-  static constexpr double kL = 0.030;         // m, axle->CoM (CAD-verified 2026-07-12)
+  static constexpr double kMass = 0.68701;    // kg (with 2S pack aboard)
+  static constexpr double kJc = 2.065e-3;     // kg*m^2 about CoM, pitch axis (with pack)
+  static constexpr double kL = 0.042;         // m, axle->CoM (CAD w/ pack, 2026-07-12)
   static constexpr double kR = 0.0325;        // m wheel radius
   static constexpr double kG = 9.81;
   // L298N fed from a 2S pack: ~5 V effective at the motors
