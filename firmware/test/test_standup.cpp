@@ -1,3 +1,5 @@
+// ARCHIVED physics study — the stand-up feature was dropped from the firmware
+// (2026-07-12); kept because it documents WHY: traction-limited from >=70 deg.
 // Stand-up (swing-up) maneuver study for the real BoomBot plant.
 //   make -C firmware/test standup
 //

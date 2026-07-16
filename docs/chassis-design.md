@@ -73,13 +73,11 @@ to catch a lean — which is why the robot must stay **light** (see below).
 
 ## Concrete chassis recommendations
 
-**Stand-up tail (new requirement, 2026-07-12)**
-- Add a small tail/prop (front and back) so the fallen robot **rests at ≤45°
-  from vertical** (with the head extension; ≤55° without it), not flat.
-  Simulation (`make -C firmware/test standup`) shows self-raising works from
-  those angles but is **physically impossible from 70–90°** — the wheels' push force is traction-limited to
-  ~μ·m·g ≈ 6 N, and beating gravity from flat would need ~12 N. No motor
-  upgrade changes this; only the rest angle does.
+**Stand-up (dropped from scope, 2026-07-12)**
+- Self-raising was studied (`firmware/test/test_standup.cpp` remains as the
+  archived physics study) and removed from the firmware. If revived later, the
+  chassis needs a tail so the robot rests at ≤45° (with the head extension) —
+  from 70–90° it is traction-limited and physically impossible.
 
 **Center of mass**
 - Target **CoM ~90 mm above the axle** (matches the tuned model).

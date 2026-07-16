@@ -267,17 +267,6 @@ static bool g_armAllowed = true;
 static bool g_armed = false;
 static uint32_t g_uprightSinceMs = 0;
 
-// Stand-up maneuver ('u'): momentum pump from a tail-propped rest angle.
-// Sim (firmware/test/test_standup.cpp): works from <=55-60 deg rest; from
-// 70-90 deg it is traction-limited and physically impossible with wheels.
-enum class StandupPhase { Idle, Reverse, Kick };
-static StandupPhase g_standup = StandupPhase::Idle;
-static uint32_t g_standupStartMs = 0;
-static float g_standupDir = 1.0f;          // +1 = lying on the front
-static uint32_t g_kickRevMs = 150;         // reverse-phase length, '['/']' tune
-static const float kCatchDeg = 25.0f;      // hand over to balance inside this
-static const uint32_t kKickTimeoutMs = 1200;
-
 static const float kArmWithinDeg = 2.0f;
 static const uint32_t kArmHoldMs = 1000;
 static const float kLoopDt = 0.005f;  // 200 Hz
@@ -356,7 +345,7 @@ void setup() {
 static void handleConsole() {
   for (int c = conRead(); c >= 0; c = conRead()) {
     bool gainsChanged = false;
-    if (c == 'd') { g_armAllowed = false; g_armed = false; g_standup = StandupPhase::Idle; motorsKill(); conPrintln("# DISARMED"); }
+    if (c == 'd') { g_armAllowed = false; g_armed = false; motorsKill(); conPrintln("# DISARMED"); }
     if (c == 'a') { g_armAllowed = true; conPrintln("# READY - hold upright to arm"); }
     if (c == 't') { g_telemetry = !g_telemetry; conPrintln(g_telemetry ? "# telemetry ON" : "# telemetry OFF"); }
     if (c == '+') { g_trimDeg += 0.5f; printGains(); }
@@ -369,26 +358,6 @@ static void handleConsole() {
     if (c == 'z') { g_deadbandPct -= 2.0f; if (g_deadbandPct < 0) g_deadbandPct = 0; printGains(); }
     if (c == 'x') { g_deadbandPct += 2.0f; if (g_deadbandPct > 60) g_deadbandPct = 60; printGains(); }
     if (c == 'g') { printGains(); }
-    if (c == 'u') {
-      if (g_armed) {
-        conPrintln("# stand-up refused while ARMED");
-      } else if (g_standup != StandupPhase::Idle) {
-        conPrintln("# stand-up already running");
-      } else {
-        g_standup = StandupPhase::Reverse;  // direction chosen in the loop
-        g_standupStartMs = 0;
-        conPrintf("# STAND-UP: reverse %ums then kick (catch < %.0f deg)\n",
-                  (unsigned)g_kickRevMs, kCatchDeg);
-      }
-    }
-    if (c == '[') {
-      g_kickRevMs = g_kickRevMs > 75 ? g_kickRevMs - 25 : 50;
-      conPrintf("# kick reverse %ums\n", (unsigned)g_kickRevMs);
-    }
-    if (c == ']') {
-      g_kickRevMs = g_kickRevMs < 575 ? g_kickRevMs + 25 : 600;
-      conPrintf("# kick reverse %ums\n", (unsigned)g_kickRevMs);
-    }
     if (c == 'm') {
       // Drive-train step test: discriminates electrical weakness from control
       // problems. If full duty spins up slowly, no gain tuning can help.
@@ -444,49 +413,7 @@ void loop() {
   const float angle = g_filter.update(accelAngle, rate, kLoopDt);
   const float theta = angle - g_trimDeg;
 
-  if (g_standup != StandupPhase::Idle) {
-    if (g_standupStartMs == 0) {
-      // First tick: validate posture and pick the kick direction. Attempts
-      // beyond ~70 deg are allowed for demonstration - the sim says the
-      // wheels are traction-limited there and it will fail.
-      const float a = fabsf(theta);
-      if (a < 30.0f) {
-        g_standup = StandupPhase::Idle;
-        motorsKill();
-        conPrintf("# stand-up refused: angle %.0f deg - already nearly upright\n", theta);
-      } else {
-        if (a > 70.0f) {
-          conPrintf("# attempting from %.0f deg - physics says traction-limited, expect failure\n", theta);
-        }
-        g_standupDir = theta > 0 ? 1.0f : -1.0f;
-        g_standupStartMs = msNow;
-      }
-    }
-    if (g_standup != StandupPhase::Idle) {
-      const uint32_t elapsed = msNow - g_standupStartMs;
-      if (g_standup == StandupPhase::Reverse) {
-        // Build wheel speed away from the face.
-        motorsApply(g_mixer.mix(-100.0f * g_standupDir, proto::Direction::Stop, 0));
-        if (elapsed >= g_kickRevMs) {
-          g_standup = StandupPhase::Kick;
-          g_standupStartMs = msNow;
-        }
-      } else {  // Kick: slam toward the face, wait for the catch window.
-        motorsApply(g_mixer.mix(100.0f * g_standupDir, proto::Direction::Stop, 0));
-        if (fabsf(theta) < kCatchDeg) {
-          g_standup = StandupPhase::Idle;
-          g_armed = true;
-          g_ctrl.reset();
-          g_velEst.reset();
-          conPrintln("# STOOD UP - balancing");
-        } else if (elapsed >= kKickTimeoutMs) {
-          g_standup = StandupPhase::Idle;
-          motorsKill();
-          conPrintln("# stand-up FAILED - try ']' (longer reverse) or a shallower rest angle");
-        }
-      }
-    }
-  } else if (!g_armed) {
+  if (!g_armed) {
     motorsKill();
     const uint32_t ms = millis();
     if (g_armAllowed && fabsf(theta) < kArmWithinDeg) {

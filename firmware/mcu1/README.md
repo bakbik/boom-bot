@@ -24,11 +24,13 @@ From [`docs/wiring.md`](../../docs/wiring.md), only these:
 |------|------|
 | GY-521 | VCC→3V3, GND→GND, SCL→GPIO10, SDA→GPIO11 (AD0/INT/XDA/XCL unconnected) |
 | L298N control | ENA→GPIO5, IN1→GPIO6, IN2→GPIO7, ENB→GPIO4, IN3→GPIO12, IN4→GPIO13 |
-| L298N power | VS→5V rail (+ bridge VS→5V terminal, 5V-EN jumper OFF), GND→common |
+| L298N power | VS→**2S pack + (7.4 V)**, VSS→5 V rail (5V-EN jumper OFF), GND→common |
 | Motors | left→OUT1/OUT2, right→OUT3/OUT4 |
-| Lolin power | USB (from computer while testing) |
+| Lolin power | USB (computer while flashing, power bank when roaming) |
 
-⚠ Common ground between Lolin, L298N, and the 5 V rail is mandatory.
+⚠ Common ground between Lolin, L298N, 2S pack, and the 5 V rail is mandatory.
+⚠ The 2S pack must never touch the 5 V rail or any Lolin pin. Power-up order:
+power bank first, then the 2S.
 
 ## Flash (PlatformIO — recommended)
 
@@ -75,8 +77,6 @@ in USB, then retry upload.
 | `e` / `r` | angle kd −0.1 / +0.1 (damping) |
 | `z` / `x` | motor deadband −2% / +2% (min duty where motors actually move) |
 | `g` | print current gains/deadband/trim |
-| `u` | stand-up maneuver from a tail-propped rest (30–75°): reverse kick, slam, catch |
-| `[` / `]` | kick reverse-phase −25 ms / +25 ms (default 150 ms) |
 
 Live-tuning workflow: get it balancing (even badly), then adjust while it runs.
 Too weak/slow → `w` until it catches falls; buzzing/shaking → `e`,`r` to damp or
