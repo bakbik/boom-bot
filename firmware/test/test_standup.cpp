@@ -22,16 +22,16 @@ using namespace boombot::control;
 namespace {
 
 struct Plant {
-  // As-built constants (CAD 2026-07-12, incl. 2S pack)
-  static constexpr double kMass = 0.68701;
-  static constexpr double kJc = 2.065e-3;
-  static constexpr double kL = 0.042;
+  // As-built constants (CAD 2026-07-12, incl. 2S pack + head extension)
+  static constexpr double kMass = 0.72758;
+  static constexpr double kJc = 3.545e-3;
+  static constexpr double kL = 0.068;
   static constexpr double kR = 0.0325;
   static constexpr double kG = 9.81;
   static constexpr double kStallForce = 5.2;
   static constexpr double kVmax = 0.95;
   static constexpr double kFric = 0.8;
-  static constexpr double kRestDeg = 55.0;  // design target: tail props it at <=55 deg
+  static constexpr double kRestDeg = 45.0;  // design target with the head extension: tail props at <=45 deg
 
   double theta = kRestDeg * M_PI / 180.0;
   double omega = 0.0, vel = 0.0, pos = 0.0;

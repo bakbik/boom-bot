@@ -237,9 +237,9 @@ static void motorsKill() {
 // it balanceable, not the gain values.
 static control::BalanceConfig benchConfig() {
   control::BalanceConfig c = control::defaultBalanceConfig();
-  c.angle.kp = 40.0f;   // tuned for the 2S-powered drive (motor rail 7.4 V)
+  c.angle.kp = 40.0f;   // tuned for the 2S drive + head extension (L=68 mm)
   c.angle.ki = 10.0f;
-  c.angle.kd = 0.75f;
+  c.angle.kd = 1.0f;
   return c;
 }
 
@@ -248,10 +248,10 @@ static control::BalanceController g_ctrl(benchConfig());
 static control::DriveMixer g_mixer;
 
 // Encoder-less wheel-velocity estimate from the motor command (see control.h).
-// Nominal constants for the 2S-fed L298N (~5 V at the motors) + 687 g robot
-// (mass incl. the onboard 2S pack, CAD 2026-07-12).
+// Nominal constants for the 2S-fed L298N (~5 V at the motors) + 728 g robot
+// (mass incl. 2S pack + head extension, CAD 2026-07-12).
 static control::VelocityEstimator g_velEst(
-    control::VelocityEstimatorConfig{7.57f, 0.95f, 0.8f});
+    control::VelocityEstimatorConfig{7.15f, 0.95f, 0.8f});
 
 static float g_gyroBias = 0.0f;
 static float g_trimDeg = -8.0f;     // bench-measured starting balance point

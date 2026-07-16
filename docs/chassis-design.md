@@ -1,10 +1,14 @@
 # Chassis Design — Control-Relevant Dimensions (M2 input)
 
-> **As built (CAD-measured, 2026-07-12, incl. onboard 2S motor pack):** mass
-> **687 g**, pitch inertia about the CoM **2.07×10⁻³ kg·m²**, axle→CoM
-> **L ≈ 42 mm**, wheels **65 mm**. (Without the pack: 581 g / 1.38×10⁻³ /
-> 30 mm.) Effective pendulum length J_pivot/(m·L) ≈ 114 mm → τ ≈ 0.10 s
-> (≈20 control cycles at 200 Hz) — comfortable.
+> **As built (CAD-measured, 2026-07-12, incl. 2S pack + head extension):**
+> mass **728 g**, pitch inertia about the CoM **3.55×10⁻³ kg·m²**, axle→CoM
+> **L ≈ 68 mm**, wheels **65 mm**. Fall timescale τ ≈ 0.12 s (was 0.11 s
+> before the extension) — the extension slows the fall ~11%, easing balance,
+> and shrinks the trim angle for a given CoM offset. **Cost:** self-raising
+> now needs a rest angle **≤45°** (was ≤55° without the extension) because
+> gravity torque when down grows with L while wheel traction doesn't. A
+> longer extension continues this trade (L=100 mm sim: rest must be ≤40°,
+> balance gain marginal) — keep the extension short.
 > Gains for this exact plant: `make -C firmware/test tune`. Two key results:
 > (1) with an L298N-class drive the robot is **only stabilizable with velocity
 > feedback** (pseudo-velocity estimator now; AS5600 encoders properly);
@@ -70,10 +74,10 @@ to catch a lean — which is why the robot must stay **light** (see below).
 ## Concrete chassis recommendations
 
 **Stand-up tail (new requirement, 2026-07-12)**
-- Add a small tail/prop (front and back) so the fallen robot **rests at ≤55°
-  from vertical**, not flat. Simulation (`make -C firmware/test standup`)
-  shows self-raising works robustly from ≤55–60° but is **physically
-  impossible from 70–90°** — the wheels' push force is traction-limited to
+- Add a small tail/prop (front and back) so the fallen robot **rests at ≤45°
+  from vertical** (with the head extension; ≤55° without it), not flat.
+  Simulation (`make -C firmware/test standup`) shows self-raising works from
+  those angles but is **physically impossible from 70–90°** — the wheels' push force is traction-limited to
   ~μ·m·g ≈ 6 N, and beating gravity from flat would need ~12 N. No motor
   upgrade changes this; only the rest angle does.
 
